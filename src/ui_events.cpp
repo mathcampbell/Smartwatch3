@@ -89,6 +89,7 @@ void mainarc_select(lv_event_t * e)
         // Second section (100-200) - Change to Clock Screen
          lv_arc_set_start_angle(ui_MainArcClockMenu, 180);
          lv_arc_set_end_angle(ui_MainArcClockMenu, 240);
+         printf("switching to clock Screen\n");
         _ui_screen_change(&ui_ClockScreen, LV_SCR_LOAD_ANIM_FADE_ON, 100, 0, ui_ClockScreen_screen_init);
     } else if(arcvalue >= 200 && arcvalue < 300) {
         // Third section (200-300) - Change to Music Controls

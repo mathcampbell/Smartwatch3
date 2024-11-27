@@ -5,8 +5,12 @@
 
 #include "ui.h"
 #include <Arduino.h>
+// ui_clockscreen.c
+#include "ui_ClockScreen.h"
+#include "clock.h" // Include clock.h to access clock data
 
- void ui_ClockScreen_screen_init(void)
+//OLD VERSION
+ /* void ui_ClockScreen_screen_init(void)
 {
     ui_ClockScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ClockScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -67,4 +71,144 @@
 
     lv_obj_add_event_cb(ui_MainArcClockMenu, ui_event_MainArcClockMenu, LV_EVENT_ALL, NULL);
 } 
+ */
+// OLD VERSION
 
+
+// New Version from here.
+
+// Declare UI elements
+//lv_obj_t * ui_ClockScreen;
+lv_obj_t * clock_scale;
+lv_obj_t * hour_hand_img;
+lv_obj_t * minute_hand_img;
+lv_obj_t * second_hand_line;
+
+void ui_ClockScreen_screen_init(void) {
+    // Create the clock screen
+    printf("Creating clock Screen\n");
+    ui_ClockScreen = lv_obj_create(NULL);
+    lv_obj_clear_flag(ui_ClockScreen, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Set background image
+    //lv_obj_set_style_bg_img_src(ui_ClockScreen, &watch360, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_size(ui_ClockScreen, 360, 360);
+    lv_obj_set_align(ui_ClockScreen, LV_ALIGN_CENTER);
+
+    // Main Arc Menu
+
+     ui_MainArcClockMenu = lv_arc_create(ui_ClockScreen);
+    lv_obj_set_width(ui_MainArcClockMenu, 210); // Adjusted for 360x360
+    lv_obj_set_height(ui_MainArcClockMenu, 210);
+    lv_obj_set_align(ui_MainArcClockMenu, LV_ALIGN_CENTER);
+    lv_arc_set_range(ui_MainArcClockMenu, 0, 500);
+    lv_arc_set_value(ui_MainArcClockMenu, 200);
+    lv_obj_set_style_arc_color(ui_MainArcClockMenu, lv_color_hex(0xDDDDDD), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_opa(ui_MainArcClockMenu, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_width(ui_MainArcClockMenu, 8, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_rounded(ui_MainArcClockMenu, false, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_set_style_arc_color(ui_MainArcClockMenu, lv_color_hex(0x000000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_opa(ui_MainArcClockMenu, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_width(ui_MainArcClockMenu, 5, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_rounded(ui_MainArcClockMenu, false, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+
+    lv_obj_set_style_bg_color(ui_MainArcClockMenu, lv_color_hex(0xFFFFFF), LV_PART_KNOB | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_MainArcClockMenu, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
+
+
+    // Create the scale (clock face)
+    clock_scale = lv_scale_create(ui_ClockScreen);
+    lv_obj_clear_flag(clock_scale, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(clock_scale, 360, 360);
+    lv_obj_center(clock_scale);
+    lv_scale_set_mode(clock_scale, LV_SCALE_MODE_ROUND_INNER);
+    //lv_obj_set_style_bg_opa(clock_scale, 255, 0);
+    lv_obj_set_style_bg_img_src(clock_scale, &watch360, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(clock_scale, LV_RADIUS_CIRCLE, 0);
+    //lv_obj_set_style_clip_corner(clock_scale, true, 0);
+
+  //  lv_scale_set_label_show(clock_scale, true);
+  //  lv_scale_set_total_tick_count(clock_scale, 61);
+  //  lv_scale_set_major_tick_every(clock_scale, 5);
+
+   // static const char * hour_ticks[] = {"12", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", NULL};
+   // lv_scale_set_text_src(clock_scale, hour_ticks);
+
+    // Set styles for the scale (ticks, labels)
+    // ... (Copy styles from the LVGL example or customize as needed)
+
+    lv_scale_set_range(clock_scale, 0, 60);
+    lv_scale_set_angle_range(clock_scale, 360);
+    lv_scale_set_rotation(clock_scale, 270); // Start at the top
+    
+  
+    
+    // Create hour hand image
+    hour_hand_img = lv_img_create(clock_scale);
+    lv_img_set_src(hour_hand_img, &hour_hand);
+    //lv_obj_center(hour_hand_img);
+    lv_img_set_pivot(hour_hand_img, 0, 6);
+    lv_obj_align(hour_hand_img, LV_ALIGN_CENTER, 41, 0);
+    lv_img_set_angle(hour_hand_img, 0);
+
+    // Create minute hand image
+    minute_hand_img = lv_img_create(clock_scale);
+    lv_img_set_src(minute_hand_img, &minute_hand);
+    //lv_obj_center(minute_hand_img);
+    lv_img_set_pivot(minute_hand_img, 0, 5);
+    lv_obj_align(minute_hand_img, LV_ALIGN_CENTER, 54, 0);
+    lv_img_set_angle(minute_hand_img, 0);
+  
+  // Create second hand line
+    second_hand_line = lv_line_create(clock_scale);
+    // Define points for the second hand line
+    static lv_point_precise_t second_hand_points[] = {{0, 0}, {0, 90}}; // Adjust length as needed
+    lv_line_set_points(second_hand_line, second_hand_points, 2);
+    lv_obj_center(second_hand_line);
+    lv_obj_set_style_line_width(second_hand_line, 2, 0);
+    lv_obj_set_style_line_color(second_hand_line, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_obj_set_style_line_rounded(second_hand_line, true, 0);
+    lv_obj_set_style_transform_pivot_x(second_hand_line, 0, 0);
+    lv_obj_set_style_transform_pivot_y(second_hand_line, 0, 0); 
+   
+   // Create a circle dot to cover the middle.
+
+    lv_obj_t * circle_dot = lv_obj_create(clock_scale);
+    lv_obj_set_size(circle_dot, 10, 10);
+    lv_obj_align(circle_dot, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_radius(circle_dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(circle_dot, lv_color_hex(0x000000), 0);
+    lv_obj_set_style_bg_opa(circle_dot, 255, 0);
+    lv_obj_set_style_border_opa(circle_dot, 255, 0);
+    lv_obj_set_style_border_color(circle_dot, lv_palette_main(LV_PALETTE_BLUE_GREY), 0);
+
+ 
+
+    // Call update to set initial positions
+    update_clock_screen();
+}
+
+void update_clock_screen(void) {
+    if (lv_scr_act() != ui_ClockScreen) {
+        // Clock screen is not active; no need to update
+        return;
+    }
+    printf("updating clock screen \n");
+    // Calculate angles
+    int32_t hour_angle = ((hour_value % 12) * 30 * 10) + (minute_value * 5); // In LVGL angle units (0.1 degrees)
+    int32_t minute_angle = minute_value * 6 * 10; // 6 degrees per minute
+    int32_t second_angle = second_value * 6 * 10; // 6 degrees per second
+    
+    lv_scale_set_image_needle_value(clock_scale, hour_hand_img, hour_value % 12);
+    lv_scale_set_image_needle_value(clock_scale, minute_hand_img, minute_value);
+    lv_scale_set_line_needle_value(clock_scale, second_hand_line, 140, second_value);
+
+    // Set angles to the images
+    //lv_img_set_angle(hour_hand_img, hour_angle);
+    //lv_img_set_angle(minute_hand_img, minute_angle);
+   // lv_obj_set_style_transform_angle(second_hand_line, second_angle, 0);
+
+    // Optionally, refresh the screen
+    // lv_obj_invalidate(ui_ClockScreen);
+}

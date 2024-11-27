@@ -227,7 +227,7 @@ void add_segment_buttons(void) {
         // Create a button for the segment
         lv_obj_t * btn = lv_btn_create(ui_Settings);
         lv_obj_set_style_radius(btn, LV_RADIUS_CIRCLE, 0);
-        lv_obj_set_size(btn, 50, 50); // Adjust size as needed
+        lv_obj_set_size(btn, 40, 40); // Adjust size as needed
         lv_obj_align(btn, LV_ALIGN_CENTER, x, y);
         lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, 0); // Make button background transparent
         lv_obj_set_style_border_opa(btn, LV_OPA_TRANSP, LV_PART_MAIN);

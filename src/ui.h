@@ -34,6 +34,7 @@ extern lv_obj_t * img_bell;
 // SCREEN: ui_ClockScreen
 void ui_ClockScreen_screen_init(void);
 extern lv_obj_t * ui_ClockScreen;
+extern void update_main_screen(void);
 void ui_event_MainArcClockMenu(lv_event_t * e);
 extern lv_obj_t * ui_MainArcClockMenu;
 extern lv_obj_t *hour_hand_img;

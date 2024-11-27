@@ -5,6 +5,13 @@
 
 #include "ui.h"
 #include <Arduino.h>
+#include "clock.h"
+#include "ui_MainScreen.h"
+
+//lv_obj_t * ui_MainScreen;
+lv_obj_t * second_arc;
+lv_obj_t * minute_arc;
+lv_obj_t * hour_arc;
 
 void ui_MainScreen_screen_init(void)
 {
@@ -30,6 +37,7 @@ void ui_MainScreen_screen_init(void)
     lv_obj_set_style_arc_width(ui_MainArcMenu, 10, LV_PART_MAIN);
     
     lv_obj_set_style_arc_color(ui_MainArcMenu, lv_color_hex(0x01070f), LV_PART_MAIN);
+    //lv_obj_set_style_arc_image_src(ui_MainArcMenu, "A:/lvgl/img/watchface_glow.png", LV_PART_MAIN);
     lv_obj_set_style_arc_color(ui_MainArcMenu, lv_color_hex(0x79CBFC), LV_PART_INDICATOR);
 
     //lv_obj_set_style_bg_color(ui_MainArcMenu, lv_color_hex(0xFFFFFF), LV_PART_KNOB | LV_STATE_DEFAULT);
@@ -43,7 +51,7 @@ void ui_MainScreen_screen_init(void)
     static lv_style_t style_main_arc;
     lv_style_init(&style_main_arc);
     //lv_style_set_arc_color(&style_main_arc, lv_color_hex(0x141721));
-    lv_style_set_arc_color(&style_main_arc, lv_color_hex(0x01070f) );
+    //lv_style_set_arc_color(&style_main_arc, lv_color_hex(0x01070f) );
     lv_style_set_arc_opa(&style_main_arc, 255);
     lv_style_set_arc_rounded(&style_main_arc, false); // Ensuring no rounded ends for main arc
 
@@ -71,50 +79,21 @@ void ui_MainScreen_screen_init(void)
 
 
     // Create the spinner with glow effect on the indicator
-    ui_MainSpinnerOuter = lv_spinner_create(ui_MainScreen);
+  //  ui_MainSpinnerOuter = lv_spinner_create(ui_MainScreen);
      
-    lv_obj_set_width(ui_MainSpinnerOuter, 210);
-    lv_obj_set_height(ui_MainSpinnerOuter, 210);
-    lv_obj_set_align(ui_MainSpinnerOuter, LV_ALIGN_CENTER);
-    lv_obj_clear_flag(ui_MainSpinnerOuter, LV_OBJ_FLAG_CLICKABLE);      /// Flags
-    lv_spinner_set_anim_params(ui_MainSpinnerOuter, 1000, 90);
+  //  lv_obj_set_width(ui_MainSpinnerOuter, 210);
+ //   lv_obj_set_height(ui_MainSpinnerOuter, 210);
+ //   lv_obj_set_align(ui_MainSpinnerOuter, LV_ALIGN_CENTER);
+ //   lv_obj_clear_flag(ui_MainSpinnerOuter, LV_OBJ_FLAG_CLICKABLE);      /// Flags
+  //  lv_spinner_set_anim_params(ui_MainSpinnerOuter, 1000, 90);
     //lv_obj_set_style_blend_mode(ui_MainSpinnerOuter, LV_BLEND_MODE_ADDITIVE, LV_PART_MAIN | LV_STATE_DEFAULT);
 
 
 
-    // Spinner main arc style (background arc)
-    static lv_style_t style_spinner_main_arc;
-    lv_style_init(&style_spinner_main_arc);
-    lv_style_set_arc_color(&style_spinner_main_arc, lv_color_hex(0x161720));
-    lv_style_set_arc_opa(&style_spinner_main_arc, 255);
-    lv_style_set_arc_width(&style_spinner_main_arc, 2);
-
-    // Apply the same glow style to the spinner's indicator arc
-    lv_obj_add_style(ui_MainSpinnerOuter, &style_spinner_main_arc, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_add_style(ui_MainSpinnerOuter, &style_indicator_glow, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-
-    // Apply style for the indicator arc color and width (overrides arc color in style_indicator_glow)
-    lv_obj_set_style_arc_color(ui_MainSpinnerOuter, lv_color_hex(0x2C9FFD), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_arc_opa(ui_MainSpinnerOuter, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_arc_width(ui_MainSpinnerOuter, 4, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+ 
     
 
-/* 
-    ui_MainSpinner = lv_spinner_create(ui_MainScreen, 1000, 90);
-    lv_obj_set_width(ui_MainSpinner, 170);
-    lv_obj_set_height(ui_MainSpinner, 170);
-    lv_obj_set_align(ui_MainSpinner, LV_ALIGN_CENTER);
-    lv_obj_clear_flag(ui_MainSpinner, LV_OBJ_FLAG_CLICKABLE);      /// Flags
-    lv_obj_set_style_blend_mode(ui_MainSpinner, LV_BLEND_MODE_ADDITIVE, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_arc_color(ui_MainSpinner, lv_color_hex(0x161720), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_arc_opa(ui_MainSpinner, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_arc_width(ui_MainSpinner, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    lv_obj_set_style_arc_color(ui_MainSpinner, lv_color_hex(0x81F0FF), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_arc_opa(ui_MainSpinner, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_arc_width(ui_MainSpinner, 4, LV_PART_INDICATOR | LV_STATE_DEFAULT); */
-
-    // Replace ui_MainSpinner with ui_BatteryArc
 
 ui_BatteryArc = lv_arc_create(ui_MainScreen);
 lv_obj_set_size(ui_BatteryArc, 170, 170);
@@ -128,6 +107,7 @@ lv_obj_clear_flag(ui_BatteryArc, LV_OBJ_FLAG_CLICKABLE); // Non-clickable
 // Set initial style
 lv_obj_set_style_arc_width(ui_BatteryArc, 5, LV_PART_MAIN);
 lv_obj_set_style_arc_width(ui_BatteryArc, 5, LV_PART_INDICATOR);
+lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x01070f), LV_PART_MAIN);
 lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x00FF00), LV_PART_INDICATOR); // Green color
 
     ui_WiFiLabel = lv_label_create(ui_MainScreen);
@@ -211,4 +191,79 @@ lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x00FF00), LV_PART_INDICA
        // Apply the styles to the arc
     //lv_obj_add_style(ui_MainArcMenu, &style_main_arc, LV_PART_MAIN | LV_STATE_DEFAULT);
     //lv_obj_add_style(ui_MainArcMenu, &style_indicator_glow, LV_PART_INDICATOR | LV_STATE_DEFAULT | LV_STATE_PRESSED);
+
+
+    // NEW STUFF: CLOCK
+
+     // Create arcs for seconds, minutes, and hours
+    second_arc = lv_arc_create(ui_MainScreen);
+    lv_obj_set_size(second_arc, 360, 360);
+    lv_obj_center(second_arc);
+    lv_arc_set_range(second_arc, 0, 60);
+    lv_arc_set_rotation(second_arc, 270);
+    lv_arc_set_bg_angles(second_arc, 0, 360);
+    lv_arc_set_value(second_arc, 0);
+    lv_obj_set_style_arc_opa(second_arc, 255, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(second_arc, 5, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(second_arc, 5, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(second_arc, lv_color_hex(0xFB8FFF), LV_PART_INDICATOR);
+    lv_obj_remove_style(second_arc, NULL, LV_PART_KNOB); // Remove knob
+    lv_obj_set_style_arc_color(second_arc, lv_color_hex(0x01070f), LV_PART_MAIN);
+    lv_obj_clear_flag(second_arc, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_rounded(second_arc, false, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_rounded(second_arc, false, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+
+    minute_arc = lv_arc_create(ui_MainScreen);
+    lv_obj_set_size(minute_arc, 340, 340);
+    lv_obj_center(minute_arc);
+    lv_arc_set_range(minute_arc, 0, 60);
+    lv_arc_set_rotation(minute_arc, 270);
+    lv_arc_set_bg_angles(minute_arc, 0, 360);
+    lv_arc_set_value(minute_arc, 0);
+    lv_obj_set_style_arc_opa(minute_arc, 255, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(minute_arc, 5, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(minute_arc, 5, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(minute_arc, lv_color_hex(0x8800ff), LV_PART_INDICATOR);
+    lv_obj_remove_style(minute_arc, NULL, LV_PART_KNOB); // Remove knob
+    lv_obj_set_style_arc_color(minute_arc, lv_color_hex(0x01070f), LV_PART_MAIN);
+    lv_obj_clear_flag(minute_arc, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_rounded(minute_arc, false, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_rounded(minute_arc, false, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+
+    hour_arc = lv_arc_create(ui_MainScreen);
+    lv_obj_set_size(hour_arc, 320, 320);
+    lv_obj_center(hour_arc);
+    lv_arc_set_range(hour_arc, 0, 12);
+    lv_arc_set_rotation(hour_arc, 270);
+    lv_arc_set_bg_angles(hour_arc, 0, 360);
+    lv_arc_set_value(hour_arc, 0);
+    lv_obj_set_style_arc_opa(hour_arc, 255, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(hour_arc, 5, LV_PART_INDICATOR);
+     lv_obj_set_style_arc_width(hour_arc, 5, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(hour_arc, lv_color_hex(0x1245FF), LV_PART_INDICATOR);
+    lv_obj_remove_style(hour_arc, NULL, LV_PART_KNOB); // Remove knob
+    lv_obj_set_style_arc_color(hour_arc, lv_color_hex(0x01070f), LV_PART_MAIN);
+    lv_obj_clear_flag(hour_arc, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_rounded(hour_arc, false, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_rounded(hour_arc, false, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+
+    // Call update to set initial values
+    update_main_screen();
+
+    
+}
+
+void update_main_screen(void) {
+    if (!ui_MainScreen || !lv_obj_is_valid(ui_MainScreen)) {
+        // Screen not initialized or not valid
+        return;
+    }
+
+    // Update arc values
+    lv_arc_set_value(second_arc, second_value);
+    lv_arc_set_value(minute_arc, minute_value);
+    lv_arc_set_value(hour_arc, hour_value % 12); // 0 to 11
+    
+    // Optionally, refresh the screen
+    // lv_obj_invalidate(ui_MainScreen);
 }
