@@ -7,24 +7,33 @@
 #include <Arduino.h>
 #include "clock.h"
 #include "ui_MainScreen.h"
+#include <lvgl.h>
+#include "esp_heap_caps.h" // Include this header for heap_caps_malloc
+
 
 //lv_obj_t * ui_MainScreen;
 lv_obj_t * second_arc;
 lv_obj_t * minute_arc;
 lv_obj_t * hour_arc;
 
+#define CANVAS_WIDTH  260
+#define CANVAS_HEIGHT 260
+
+
+
 void ui_MainScreen_screen_init(void)
 {
     ui_MainScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_MainScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-    lv_obj_set_style_bg_color(ui_MainScreen, lv_color_hex(0x01070f), LV_PART_MAIN | LV_STATE_DEFAULT);
+    //lv_obj_set_style_bg_color(ui_MainScreen, lv_color_hex(0x01070f), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_MainScreen, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_MainScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_grad_color(ui_MainScreen, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_main_stop(ui_MainScreen, 100, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_grad_stop(ui_MainScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     
     
-
+   // create_segmented_ring(ui_MainScreen);
 
 
       // Initialize the main arc menu with glow effect on the indicator
@@ -110,6 +119,14 @@ lv_obj_set_style_arc_width(ui_BatteryArc, 5, LV_PART_INDICATOR);
 lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x01070f), LV_PART_MAIN);
 lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x00FF00), LV_PART_INDICATOR); // Green color
 
+ui_BatteryLabel = lv_label_create(ui_MainScreen);
+lv_obj_set_style_text_font(ui_BatteryLabel, &lv_font_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_set_y(ui_BatteryLabel, 20);
+    lv_obj_set_align(ui_BatteryLabel, LV_ALIGN_CENTER);
+    lv_obj_set_style_text_color(ui_BatteryLabel, lv_color_hex(0x41C7FF), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_text(ui_BatteryLabel, "?????");
+
     ui_WiFiLabel = lv_label_create(ui_MainScreen);
     lv_obj_set_width(ui_WiFiLabel, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_WiFiLabel, LV_SIZE_CONTENT);    /// 1
@@ -194,10 +211,11 @@ lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x00FF00), LV_PART_INDICA
 
 
     // NEW STUFF: CLOCK
+    
 
      // Create arcs for seconds, minutes, and hours
     second_arc = lv_arc_create(ui_MainScreen);
-    lv_obj_set_size(second_arc, 360, 360);
+    lv_obj_set_size(second_arc, 320, 320);
     lv_obj_center(second_arc);
     lv_arc_set_range(second_arc, 0, 60);
     lv_arc_set_rotation(second_arc, 270);
@@ -206,7 +224,7 @@ lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x00FF00), LV_PART_INDICA
     lv_obj_set_style_arc_opa(second_arc, 255, LV_PART_MAIN);
     lv_obj_set_style_arc_width(second_arc, 5, LV_PART_INDICATOR);
     lv_obj_set_style_arc_width(second_arc, 5, LV_PART_MAIN);
-    lv_obj_set_style_arc_color(second_arc, lv_color_hex(0xFB8FFF), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(second_arc, lv_color_hex(0x0892fc), LV_PART_INDICATOR);
     lv_obj_remove_style(second_arc, NULL, LV_PART_KNOB); // Remove knob
     lv_obj_set_style_arc_color(second_arc, lv_color_hex(0x01070f), LV_PART_MAIN);
     lv_obj_clear_flag(second_arc, LV_OBJ_FLAG_CLICKABLE);
@@ -231,7 +249,7 @@ lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x00FF00), LV_PART_INDICA
     lv_obj_set_style_arc_rounded(minute_arc, false, LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
     hour_arc = lv_arc_create(ui_MainScreen);
-    lv_obj_set_size(hour_arc, 320, 320);
+    lv_obj_set_size(hour_arc, 360, 360);
     lv_obj_center(hour_arc);
     lv_arc_set_range(hour_arc, 0, 12);
     lv_arc_set_rotation(hour_arc, 270);
@@ -240,18 +258,153 @@ lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x00FF00), LV_PART_INDICA
     lv_obj_set_style_arc_opa(hour_arc, 255, LV_PART_MAIN);
     lv_obj_set_style_arc_width(hour_arc, 5, LV_PART_INDICATOR);
      lv_obj_set_style_arc_width(hour_arc, 5, LV_PART_MAIN);
-    lv_obj_set_style_arc_color(hour_arc, lv_color_hex(0x1245FF), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(hour_arc, lv_color_hex(0xcb2eff), LV_PART_INDICATOR);
     lv_obj_remove_style(hour_arc, NULL, LV_PART_KNOB); // Remove knob
     lv_obj_set_style_arc_color(hour_arc, lv_color_hex(0x01070f), LV_PART_MAIN);
     lv_obj_clear_flag(hour_arc, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_arc_rounded(hour_arc, false, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_rounded(hour_arc, false, LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
+    create_combined_scale();
+
+
+     
     // Call update to set initial values
     update_main_screen();
 
     
 }
+void create_segmented_ring(lv_obj_t * parent) {
+    /* Allocate buffer in PSRAM */
+    //lv_color_t * canvas_buf = (lv_color_t *)heap_caps_malloc(CANVAS_WIDTH * CANVAS_HEIGHT * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+    static uint8_t * canvas_buf = (uint8_t *)heap_caps_malloc(CANVAS_WIDTH * CANVAS_HEIGHT * sizeof(LV_COLOR_FORMAT_ARGB8888), MALLOC_CAP_SPIRAM);
+    
+    if(canvas_buf == NULL) {
+        // Handle allocation failure
+        printf("Failed to allocate canvas buffer in PSRAM\n");
+        return;
+    }
+ /* Create the canvas object */
+    lv_obj_t * canvas = lv_canvas_create(parent);
+
+    /* Set the drawing buffer for the canvas */
+   // lv_canvas_set_draw_buf(canvas, canvas_buf);
+   lv_canvas_set_buffer(canvas, canvas_buf, CANVAS_WIDTH, CANVAS_HEIGHT, LV_COLOR_FORMAT_ARGB8888);
+
+    /* Set the canvas size */
+    lv_obj_set_size(canvas, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    /* Fill the canvas background (optional) */
+    lv_canvas_fill_bg(canvas, lv_color_hex3(0x000), 255);
+
+    /* Center the canvas */
+    lv_obj_center(canvas);
+
+    /* Initialize the drawing layer */
+    lv_layer_t layer;
+    lv_canvas_init_layer(canvas, &layer);
+
+    /* Define segment parameters */
+    uint16_t num_segments = 12; // Number of segments
+    uint16_t gap_degree = 15;    // Gap between segments in degrees
+
+    /* Calculate the angle covered by each segment */
+    uint16_t total_gap = gap_degree * num_segments;
+    uint16_t segment_angle = (360 - total_gap) / num_segments;
+
+    /* Arc descriptor */
+    lv_draw_arc_dsc_t arc_dsc;
+    lv_draw_arc_dsc_init(&arc_dsc);
+    //arc_dsc.color = lv_color_hex(0x41C7FF); // Pale cyan color
+    
+    arc_dsc.color = lv_color_hex(0x0889bf); //darker cyan color
+    arc_dsc.width = 10;                     // Thickness of segments
+    arc_dsc.rounded = 0;                    // Set to 1 for rounded ends
+    arc_dsc.opa = LV_OPA_COVER;             // Opacity
+
+    /* Set center and radius */
+    arc_dsc.center.x = CANVAS_WIDTH / 2;
+    arc_dsc.center.y = CANVAS_HEIGHT / 2;
+    arc_dsc.radius = (CANVAS_WIDTH < CANVAS_HEIGHT ? CANVAS_WIDTH : CANVAS_HEIGHT) / 2 - arc_dsc.width / 2;
+
+    /* Start drawing each segment */
+    uint16_t start_angle = 0;
+    for(uint16_t i = 0; i < num_segments; i++)
+    {
+        uint16_t end_angle = start_angle + segment_angle;
+
+        /* Set the start and end angles (in 0.1 degrees) */
+        arc_dsc.start_angle = start_angle;
+        arc_dsc.end_angle = end_angle;
+
+        /* Draw the arc (segment) */
+        lv_draw_arc(&layer, &arc_dsc);
+
+        /* Increment start angle by segment angle and gap */
+        start_angle = end_angle + gap_degree;
+    }
+
+    /* Finish drawing on the layer */
+    lv_canvas_finish_layer(canvas, &layer);
+
+    // No need to free canvas_buf here; it will be freed when the canvas is deleted
+
+
+
+}
+
+
+void create_combined_scale(void) {
+    lv_obj_t * MainClockScale = lv_scale_create(ui_MainScreen);
+    lv_obj_clear_flag(MainClockScale, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_blend_mode(MainClockScale, LV_BLEND_MODE_MULTIPLY, LV_PART_ANY);
+    // Set the size to cover the outer ring
+    lv_obj_set_size(MainClockScale, 360, 360);
+    lv_obj_center(MainClockScale);
+
+    // Configure the scale
+    lv_scale_set_mode(MainClockScale, LV_SCALE_MODE_ROUND_INNER);
+    lv_scale_set_rotation(MainClockScale, 270); // Start at the top
+    lv_scale_set_angle_range(MainClockScale, 360);
+
+    // Set the number of ticks
+    lv_scale_set_total_tick_count(MainClockScale, 60 + 1); // +1 to include the last tick
+
+    // Set major tick every 5 ticks (12 major ticks for hours)
+    lv_scale_set_major_tick_every(MainClockScale, 5);
+
+    // Hide labels
+    lv_scale_set_label_show(MainClockScale, false);
+
+     lv_obj_set_style_arc_width(MainClockScale, 2, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(MainClockScale, lv_color_hex(0x41C7FF), LV_PART_MAIN);
+    lv_obj_set_style_arc_opa(MainClockScale, 100, LV_PART_MAIN);
+
+    // Set the radius to match your outermost arc
+   // lv_obj_set_style_radius(MainClockScale, SCALE_RADIUS, 0);
+
+     // Style for minor ticks (minute/second markers)
+    lv_obj_set_style_line_width(MainClockScale, 1, LV_PART_ITEMS); // Thickness
+    //lv_obj_set_style_scale_end_line_width(MainClockScale, 1, LV_PART_ITEMS); // For symmetry
+    lv_obj_set_style_length(MainClockScale, 10, LV_PART_ITEMS); // Length
+   // lv_obj_set_style_line_color(MainClockScale, lv_color_hex(0x19515e), LV_PART_ITEMS); // Color
+    lv_obj_set_style_line_color(MainClockScale, lv_color_hex(0x41C7FF), LV_PART_ITEMS); // Color
+    lv_obj_set_style_arc_opa(MainClockScale, 100, LV_PART_ITEMS);
+
+    // Style for major ticks (hour markers)
+    lv_obj_set_style_line_width(MainClockScale, 5, LV_PART_INDICATOR); // Thickness
+    //lv_obj_set_style_scale_end_line_width(MainClockScale, 3, LV_PART_TICKS); // For symmetry
+    lv_obj_set_style_length(MainClockScale, 10, LV_PART_INDICATOR); // Length
+    lv_obj_set_style_line_color(MainClockScale, lv_color_hex(0x41C7FF), LV_PART_INDICATOR); // Color
+
+    // Adjust colors to match your arcs if needed
+    // For example, use lv_color_hex(0x41C7FF) or other colors
+
+
+}
+
+
+
 
 void update_main_screen(void) {
     if (!ui_MainScreen || !lv_obj_is_valid(ui_MainScreen)) {

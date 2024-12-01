@@ -30,6 +30,7 @@ extern lv_obj_t * ui_MainSpinnerOuter;
 extern lv_obj_t * ui_BatteryArc;
 extern lv_obj_t * img_glow;
 extern lv_obj_t * img_bell;
+extern lv_obj_t * ui_BatteryLabel;
 
 // SCREEN: ui_ClockScreen
 void ui_ClockScreen_screen_init(void);

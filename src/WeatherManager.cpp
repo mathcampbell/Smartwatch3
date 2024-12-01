@@ -53,15 +53,22 @@ void WeatherInit() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
+unsigned long startAttemptTime = millis();
+const unsigned long timeout = 3000; // 3 seconds timeout
 
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
+while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < timeout) {
+  Serial.print(".");
+  delay(500);
+}
 
-    delay(500);
-  }
+if (WiFi.status() != WL_CONNECTED) {
+  Serial.println("Failed to connect to Wi-Fi within the timeout period.");
+  // Handle the failed connection as needed
+  return;
+} 
+  
+  Serial.println("Connected to Wi-Fi!");
 
-  Serial.println();
-  Serial.println("Connected\n");
   Serial.println(WiFi.localIP());
 
    // Initialize NTP client
@@ -247,7 +254,7 @@ const char* getMeteoconIcon(uint16_t id, bool today)
     if (id / 100 == 2) return "A:/lvgl/icons/thunderstorm.png";
     if (id / 100 == 3) return "A:/lvgl/icons/drizzle.png";
     if (id / 100 == 4) return "A:/lvgl/icons/unknown.png";
-    if (id == 500) return "A:/lvgl/icons/lightRain.png";
+    if (id == 500) return "A:/lvgl/icons/light-rain.png";
     else if (id == 511) return "A:/lvgl/icons/sleet.png";
     else if (id / 100 == 5) return "A:/lvgl/icons/rain.png";
     if (id >= 611 && id <= 616) return "A:/lvgl/icons/sleet.png";

@@ -33,6 +33,7 @@ lv_obj_t * ui_MainSpinnerOuter;
 lv_obj_t * ui_BatteryArc;
 lv_obj_t * img_glow;
 lv_obj_t * img_bell;
+lv_obj_t * ui_BatteryLabel;
 
 
 // SCREEN: ui_ClockScreen

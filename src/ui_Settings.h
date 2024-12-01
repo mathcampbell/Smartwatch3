@@ -21,6 +21,7 @@ extern const char * segment_symbols[NUM_SEGMENTS];
 extern lv_obj_t * content_area;
 
 
+extern bool doScreenBrightnessUpdate;
 
 // Function prototypes
 void ui_Settings_screen_init(void);

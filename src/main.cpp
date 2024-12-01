@@ -30,6 +30,8 @@
 #include <LittleFS.h>
 //#include "filesys.h"
 #include "WeatherManager.h"
+#include "SettingsManager.h"
+#include "ui_Settings.h"
 
 
 //////////////////// DEFINITIONS ///////////////////////////////
@@ -182,36 +184,31 @@ void adc_init()
 {
   // Configure ADC
     analogReadResolution(12);  // Set resolution to 12 bits
-   // analogSetAttenuation(ADC_0db);  // Set attenuation, e.g., no attenuation
+    analogSetAttenuation(ADC_6db);  // Set attenuation, e.g., no attenuation
   
    //Serial.print("ADC init passed");
 }
 
 float read_battery_voltage()
 {
-   // int adc_reading = analogRead(1);  // Read analog value from GPIO 1
-    int adc_reading = analogReadMilliVolts(8);
-  //Serial.print("ADC Reading (mV): ");
-    //Serial.println(adc_reading);
-
-    // Convert the ADC reading to a voltage
-    // Assuming the input voltage is scaled down by a resistor divider
-    //float voltage = (3.3 / (1 << 12)) * 3 * adc_reading;
-    float conversion_factor = 3.3f / (1 << 12) * 3;
-    float voltage = adc_reading * conversion_factor;
-    Serial.println(voltage);
-
-    return voltage;
+    int adc_reading = analogReadMilliVolts(8); // ADC reading in millivolts
+    float adc_voltage = adc_reading / 1000.0f; // Convert millivolts to volts
+    float battery_voltage = adc_voltage * 3.0f; // Adjust for voltage divider
+    Serial.println("Battery voltage is:");
+    Serial.println(battery_voltage);
+    Serial.println("adc reading is:");
+    Serial.println(adc_reading);
+    return battery_voltage;
 }
 
-uint8_t get_battery_percentage(float voltage)
+float get_battery_percentage(float voltage)
 {
-    // Assuming battery voltage range is 3.0V (0%) to 4.2V (100%)
-    if (voltage < 3.0)
-        return 0;
-    if (voltage > 4.2)
-        return 100;
-    return (uint8_t)((voltage - 3.0) / (4.2 - 3.0) * 100);
+    float battery_voltage = voltage;
+    float battery_percentage = ((battery_voltage - 3.0f) / (4.1f - 3.0f)) * 100.0f;
+    battery_percentage = constrain(battery_percentage, 0.0f, 100.0f); // Ensure it's between 0% and 100%
+    Serial.print("Battery percentage is: ");
+    Serial.println(battery_percentage);
+    return battery_percentage;
 }
 
 void update_battery_arc()
@@ -219,15 +216,17 @@ void update_battery_arc()
     
   //Serial.print("Updating battery arc.");
     float voltage = read_battery_voltage();
-    uint8_t battery_percentage = get_battery_percentage(voltage);
+    float battery_percentage = get_battery_percentage(voltage);
     //Serial.printf("Battery voltage reads: %u%%\n", battery_percentage);
 
-    if (voltage < 0)
+    if (voltage > 4.1)
     {
-        // ADC read error, set to default blue color
-       // Serial.print("ADC error: voltage 0");
+        // Probably charging
+       // Serial.print("Voltage above 4.1v, likely charged and plugged in.");
         lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x008deb), LV_PART_INDICATOR); // Blue color
         lv_arc_set_angles(ui_BatteryArc, 0, 359); // Full circle
+        lv_obj_set_style_text_color(ui_BatteryLabel, lv_color_hex(0x008deb), LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_label_set_text(ui_BatteryLabel, LV_SYMBOL_CHARGE);
         return;
     }
     if (voltage < 2.0)
@@ -235,14 +234,16 @@ void update_battery_arc()
     // No battery detected
     //Serial.print("No battery detected");
 
-    lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0x008deb), LV_PART_INDICATOR); // Blue color
+    lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(0xff0000), LV_PART_INDICATOR); // red color
     lv_arc_set_angles(ui_BatteryArc, 0, 359); // Full circle
+    lv_label_set_text(ui_BatteryLabel, LV_SYMBOL_WARNING);
+    lv_obj_set_style_text_color(ui_BatteryLabel, lv_color_hex(0xff0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+
     return;
     }
 
     
-        // Safety check: Ensure percentage is within valid range
-    if (battery_percentage > 100) battery_percentage = 100;
+
 
     // Set arc angle
     uint16_t end_angle = (uint16_t)((battery_percentage * 360) / 100);
@@ -250,8 +251,8 @@ void update_battery_arc()
 
     // Determine color based on battery percentage
     lv_color_t arc_color;
-
-    if (battery_percentage > 30)
+//OLD COLOR SCHEME
+ /*    if (battery_percentage > 30)
     {
         // Green to Yellow
         uint8_t green = 255;
@@ -270,13 +271,79 @@ void update_battery_arc()
         uint8_t red = 255;
         uint8_t green = (uint8_t)(255 * battery_percentage / 20);
         arc_color = lv_color_make(red, green, 0);
+    } */
+    //char voltage_str[16];
+    //snprintf(voltage_str, sizeof(voltage_str), "Voltage: %.3f V", voltage);
+    //lv_label_set_text(ui_BatteryLabel, voltage_str);
+
+    // OLD COLOR SCHEME ENDS
+
+     if (battery_percentage > 70)
+    {
+        // From #00ffbb (100%) to #5D64EB (70%)
+        uint8_t factor = (uint8_t)((100 - battery_percentage) * 255 / 30); // 0 - 255 range
+        arc_color = lv_color_make(
+            0x00 + (0x5D - 0x00) * factor / 255,
+            0xFF + (0x64 - 0xFF) * factor / 255,
+            0xBB + (0xEB - 0xBB) * factor / 255
+        );
     }
+    else if (battery_percentage > 30)
+    {
+        // From #5D64EB (70%) to #A343B8 (30%)
+        uint8_t factor = (uint8_t)((70 - battery_percentage) * 255 / 40); // 0 - 255 range
+        arc_color = lv_color_make(
+            0x5D + (0xA3 - 0x5D) * factor / 255,
+            0x64 + (0x43 - 0x64) * factor / 255,
+            0xEB + (0xB8 - 0xEB) * factor / 255
+        );
+    }
+    else
+    {
+        // From #A343B8 (30%) to #C23D53 (0%)
+        uint8_t factor = (uint8_t)((30 - battery_percentage) * 255 / 30); // 0 - 255 range
+        arc_color = lv_color_make(
+            0xA3 + (0xC2 - 0xA3) * factor / 255,
+            0x43 + (0x3D - 0x43) * factor / 255,
+            0xB8 + (0x53 - 0xB8) * factor / 255
+        );
+    }
+
+
+    if (battery_percentage >= 90)
+      {
+        lv_label_set_text(ui_BatteryLabel, LV_SYMBOL_BATTERY_FULL);
+        lv_obj_set_style_text_color(ui_BatteryLabel, lv_color_hex(0x03fc4e), LV_PART_MAIN | LV_STATE_DEFAULT);
+
+      }
+      else if (battery_percentage >= 75)
+        {
+          lv_label_set_text(ui_BatteryLabel, LV_SYMBOL_BATTERY_3);
+          lv_obj_set_style_text_color(ui_BatteryLabel, lv_color_hex(0x03fc4e), LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+      else if (battery_percentage >= 50)
+        {
+          lv_label_set_text(ui_BatteryLabel, LV_SYMBOL_BATTERY_2);
+          lv_obj_set_style_text_color(ui_BatteryLabel, lv_color_hex(0x77fc03), LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+      else if (battery_percentage >= 20)
+        {
+          lv_label_set_text(ui_BatteryLabel, LV_SYMBOL_BATTERY_1);
+          lv_obj_set_style_text_color(ui_BatteryLabel, lv_color_hex(0xfcf803), LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+      else    
+      {
+        lv_label_set_text(ui_BatteryLabel, LV_SYMBOL_BATTERY_EMPTY);
+        lv_obj_set_style_text_color(ui_BatteryLabel, lv_color_hex(0xff0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+      }
+  
+
 
     lv_obj_set_style_arc_color(ui_BatteryArc, arc_color, LV_PART_INDICATOR);
 }
 
 // Function to put the ESP32 into deep sleep
-void goToSleep() {
+/* void goToSleep() {
     Serial.println("Going to sleep...");
 
      touch.sleep(); // Put the touch panel into standby mode
@@ -286,7 +353,7 @@ void goToSleep() {
   
   esp_deep_sleep_start();
 }
-
+ */
 
 uint32_t millis_cb(void)
 {
@@ -317,7 +384,7 @@ void setup()
   }
       Serial.println("Initialized TCA9554 I/O expander");
    powerManager.init();
-
+ 
 
  // Configure TCA9554 pins
  // expander.pinMode(LCD_RST_PIN, OUTPUT);  // Configure as output for LCD reset
@@ -330,8 +397,15 @@ void setup()
 //  delay(120);
 
   // Turn on the backlight
-  pinMode(LCD_BL, OUTPUT);
-  digitalWrite(LCD_BL, HIGH);
+  //pinMode(LCD_BL, OUTPUT);
+  //digitalWrite(LCD_BL, HIGH);
+  
+ 
+    // Initialize the PowerManager
+    powerManager.initBacklight();
+    
+    // Set initial brightness to 80%
+    powerManager.setBacklightBrightness(80);
 
 
    // Initialize the semaphore before using LVGL
@@ -350,15 +424,9 @@ void setup()
     Serial.println("Little FS Mounted Successfully");
   }
   
-      if (!LittleFS.exists("/lvgl/img/bell_icon.bin")) {
-        Serial.println("Error: Image file not found in LittleFS.");
-        return;
-    }
-      else
-      {
-        Serial.println("We found bell_icon.bin");
-
-      }
+  //Loading the settings now
+  initializeSettingsData();
+ // powerManager.setBacklightBrightness(currentSettings.brightness_level);
 
   // Init Display
   if (!gfx->begin())
@@ -480,6 +548,7 @@ void loop()
         lv_timer_handler();
         xSemaphoreGive(xGuiSemaphore);
     } */
+     esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
 
     lv_timer_handler();
 
@@ -496,6 +565,11 @@ void loop()
     //lv_task_handler();
     
     //lv_timer_handler();
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
+        // This means the device woke from GPIO pin 4, likely from light sleep.
+        Serial.println("Woke up from light sleep...");
+       powerManager.initBacklight(); // Re-enable the backlight
+    }
 
   #ifdef DIRECT_MODE
 #if defined(CANVAS) || defined(RGB_PANEL)
@@ -513,7 +587,7 @@ void loop()
 
     // Inactivity check for sleep
     if (millis() - lastInteractionTime > SLEEP_DURATION) {
-        goToSleep();
+        powerManager.goToSleep();
     }
 
     // Battery and BLE process logic (same as before)
@@ -541,6 +615,12 @@ void loop()
     if (currentTime - lastProcessTime >= 30000) {
         // processBLE();  // Assuming this will be uncommented later
         lastProcessTime = currentTime;
+    }
+
+    if (doScreenBrightnessUpdate)
+    {
+      powerManager.setBacklightBrightness(currentSettings.brightness_level);
+      doScreenBrightnessUpdate = false;
     }
 
     lv_tick_inc(5);

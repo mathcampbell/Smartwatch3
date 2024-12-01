@@ -4,7 +4,7 @@
 // Project name: SmartWatch
 
 #include "ui_Settings.h"
-
+#include "SettingsManager.h"
 
 lv_obj_t * arc_segments[NUM_SEGMENTS];
 const char * segment_labels[NUM_SEGMENTS] = {"Wi-Fi", "General", "Home", "Bluetooth", "Weather", "Sound"};
@@ -17,6 +17,8 @@ lv_obj_t * content_area;
 lv_obj_t * ui_SettingsRadialMenu;
 lv_obj_t * content_label;
 int segment_index;
+bool doScreenBrightnessUpdate;
+
 
 void create_content_area(void) {
     content_area = lv_obj_create(ui_Settings);
@@ -55,7 +57,7 @@ void show_brightness_settings(void) {
     lv_obj_set_width(slider, lv_pct(80));
     lv_obj_align(slider, LV_ALIGN_CENTER, 0, 0);
     lv_slider_set_range(slider, 0, 100);
-    lv_slider_set_value(slider, 50, LV_ANIM_OFF);
+    lv_slider_set_value(slider, currentSettings.brightness_level, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider, brightness_slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
@@ -71,7 +73,7 @@ void show_sleep_settings(void) {
     lv_obj_set_width(slider, lv_pct(80));
     lv_obj_align(slider, LV_ALIGN_CENTER, 0, 30);
     lv_slider_set_range(slider, 5, 60);
-    lv_slider_set_value(slider, 30, LV_ANIM_OFF);
+    lv_slider_set_value(slider, currentSettings.sleep_duration, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider, sleep_timer_slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
@@ -515,6 +517,9 @@ void settingsMenu_select(lv_event_t * e)
 void brightness_slider_event_cb(lv_event_t * e) {
     lv_obj_t * slider = (lv_obj_t *)lv_event_get_target(e);
     int16_t value = lv_slider_get_value(slider);
+    currentSettings.brightness_level = value;
+    doScreenBrightnessUpdate = true;
+    
     // Adjust the display brightness accordingly
     // Implement set_display_brightness(value);
 }

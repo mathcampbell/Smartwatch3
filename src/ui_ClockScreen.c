@@ -116,6 +116,7 @@ void ui_ClockScreen_screen_init(void) {
     lv_obj_set_style_bg_color(ui_MainArcClockMenu, lv_color_hex(0xFFFFFF), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_MainArcClockMenu, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
 
+    lv_obj_add_event_cb(ui_MainArcClockMenu, ui_event_MainArcClockMenu, LV_EVENT_ALL, NULL);
 
     // Create the scale (clock face)
     clock_scale = lv_scale_create(ui_ClockScreen);
@@ -194,13 +195,23 @@ void update_clock_screen(void) {
         // Clock screen is not active; no need to update
         return;
     }
-    printf("updating clock screen \n");
+   // printf("updating clock screen \n");
     // Calculate angles
     int32_t hour_angle = ((hour_value % 12) * 30 * 10) + (minute_value * 5); // In LVGL angle units (0.1 degrees)
     int32_t minute_angle = minute_value * 6 * 10; // 6 degrees per minute
     int32_t second_angle = second_value * 6 * 10; // 6 degrees per second
-    
-    lv_scale_set_image_needle_value(clock_scale, hour_hand_img, hour_value % 12);
+    printf("Setting hour hand value %d .\n", hour_value);
+
+    // Map the hour to the 0-60 scale
+float hour_base_value = hour_value * 5.0f; // Each hour corresponds to 5 units
+
+// Calculate the minute adjustment
+float minute_adjustment = (minute_value / 60.0f) * 5.0f; // Adjusts the hour hand based on minutes
+
+// Calculate the final hour value on the scale
+float hour_scale_value = hour_base_value + minute_adjustment;
+
+    lv_scale_set_image_needle_value(clock_scale, hour_hand_img, hour_scale_value);
     lv_scale_set_image_needle_value(clock_scale, minute_hand_img, minute_value);
     lv_scale_set_line_needle_value(clock_scale, second_hand_line, 140, second_value);
 
