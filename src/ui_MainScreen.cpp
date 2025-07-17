@@ -16,8 +16,8 @@ lv_obj_t * second_arc;
 lv_obj_t * minute_arc;
 lv_obj_t * hour_arc;
 
-#define CANVAS_WIDTH  260
-#define CANVAS_HEIGHT 260
+#define CANVAS_WIDTH  412
+#define CANVAS_HEIGHT 412
 
 
 
@@ -25,8 +25,8 @@ void ui_MainScreen_screen_init(void)
 {
     ui_MainScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_MainScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-    //lv_obj_set_style_bg_color(ui_MainScreen, lv_color_hex(0x01070f), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_color(ui_MainScreen, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_MainScreen, lv_color_hex(0x01070f), LV_PART_MAIN | LV_STATE_DEFAULT);
+    //lv_obj_set_style_bg_color(ui_MainScreen, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_MainScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_grad_color(ui_MainScreen, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_main_stop(ui_MainScreen, 100, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -134,7 +134,9 @@ lv_obj_set_style_text_font(ui_BatteryLabel, &lv_font_montserrat_14, LV_PART_MAIN
     lv_obj_set_y(ui_WiFiLabel, 50);
     lv_obj_set_align(ui_WiFiLabel, LV_ALIGN_CENTER);
     lv_label_set_text(ui_WiFiLabel, LV_SYMBOL_WIFI);
-    lv_obj_set_style_text_color(ui_WiFiLabel, lv_color_hex(0x41C7FF), LV_PART_MAIN | LV_STATE_DEFAULT);
+    //lv_obj_set_style_text_color(ui_WiFiLabel, lv_color_hex(0x41C7FF), LV_PART_MAIN | LV_STATE_DEFAULT);
+    //Setting the WIFI label "off" colour
+    lv_obj_set_style_text_color(ui_WiFiLabel, lv_color_hex(0x005578), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_WiFiLabel, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_WiFiLabel, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_WiFiLabel, &lv_font_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -215,7 +217,7 @@ lv_obj_set_style_text_font(ui_BatteryLabel, &lv_font_montserrat_14, LV_PART_MAIN
 
      // Create arcs for seconds, minutes, and hours
     second_arc = lv_arc_create(ui_MainScreen);
-    lv_obj_set_size(second_arc, 320, 320);
+    lv_obj_set_size(second_arc, 370, 370);
     lv_obj_center(second_arc);
     lv_arc_set_range(second_arc, 0, 60);
     lv_arc_set_rotation(second_arc, 270);
@@ -232,7 +234,7 @@ lv_obj_set_style_text_font(ui_BatteryLabel, &lv_font_montserrat_14, LV_PART_MAIN
     lv_obj_set_style_arc_rounded(second_arc, false, LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
     minute_arc = lv_arc_create(ui_MainScreen);
-    lv_obj_set_size(minute_arc, 340, 340);
+    lv_obj_set_size(minute_arc, 390, 390);
     lv_obj_center(minute_arc);
     lv_arc_set_range(minute_arc, 0, 60);
     lv_arc_set_rotation(minute_arc, 270);
@@ -249,7 +251,7 @@ lv_obj_set_style_text_font(ui_BatteryLabel, &lv_font_montserrat_14, LV_PART_MAIN
     lv_obj_set_style_arc_rounded(minute_arc, false, LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
     hour_arc = lv_arc_create(ui_MainScreen);
-    lv_obj_set_size(hour_arc, 360, 360);
+    lv_obj_set_size(hour_arc, 410, 410);
     lv_obj_center(hour_arc);
     lv_arc_set_range(hour_arc, 0, 12);
     lv_arc_set_rotation(hour_arc, 270);
@@ -359,7 +361,7 @@ void create_combined_scale(void) {
     lv_obj_clear_flag(MainClockScale, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_blend_mode(MainClockScale, LV_BLEND_MODE_MULTIPLY, LV_PART_ANY);
     // Set the size to cover the outer ring
-    lv_obj_set_size(MainClockScale, 360, 360);
+    lv_obj_set_size(MainClockScale, 412, 412);
     lv_obj_center(MainClockScale);
 
     // Configure the scale

@@ -61,13 +61,17 @@ void ui_event_nextbutton(lv_event_t * e);
 extern lv_obj_t * ui_nextbutton;
 void ui_event_MusicVolume(lv_event_t * e);
 extern lv_obj_t * ui_MusicVolume;
+
 // SCREEN: ui_Settings
 void ui_Settings_screen_init(void);
 extern lv_obj_t * ui_Settings;
 void ui_event_MainArcSettingsMenu(lv_event_t * e);
 extern lv_obj_t * ui_MainArcSettingsMenu;
 extern lv_obj_t * ui____initial_actions0;
-
+extern lv_obj_t * action_container;
+extern lv_obj_t * bt_device_list;
+extern lv_obj_t *wifi_switch;
+extern lv_obj_t *wifi_list;
 
 LV_IMG_DECLARE(watch360);    // assets/watchface.png
 LV_IMG_DECLARE(hour_hand);    // assets/hour_hand.png

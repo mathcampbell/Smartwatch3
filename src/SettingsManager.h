@@ -11,6 +11,13 @@
 #include <LittleFS.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
+#include "ui.h"
+#include <vector>
+
+struct WiFiNetwork {
+    String ssid;
+    String password;
+};
 
 struct SettingsData {
     String wifi_ssd;
@@ -20,9 +27,13 @@ struct SettingsData {
     uint16_t screen_dim_duration;
     uint16_t sleep_duration;
     uint16_t system_volume;
-    String weather_location;
+    String weather_lat;
+    String weather_long;
+    std::vector<WiFiNetwork> known_wifi_networks;
 
 };
+
+
 
 extern SettingsData currentSettings;
 

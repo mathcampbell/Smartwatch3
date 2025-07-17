@@ -1,5 +1,6 @@
 #include "PowerManager.h"
 #include "esp_sleep.h"
+#include "driver/rtc_io.h"
 
 
 PowerManager::PowerManager(uint8_t pwrKeyPin, uint8_t controlPin, Adafruit_XCA9554 *expander)
@@ -80,10 +81,12 @@ void PowerManager::setBacklightBrightness(uint8_t brightness) {
     if (brightness > 100) brightness = 100; // Cap the brightness at 100%
     
     // Calculate the duty cycle based on the resolution
-    uint32_t dutyCycle = (pow(2, LEDC_RESOLUTION) - 1) * brightness / 100;
-    
+    //uint32_t dutyCycle = (pow(2, LEDC_RESOLUTION) - 1) * brightness / 100;
+      uint32_t dutyCycle = ((1 << LEDC_RESOLUTION) - 1) * brightness / 100;
+      
     // Write the duty cycle to the LEDC channel
     ledcWrite(LEDC_CHANNEL, dutyCycle);
+    //Serial.printf("Setting brightness: %d, Calculated duty cycle: %u\n", brightness, dutyCycle);
 }
 
 void PowerManager::turnOffBacklight() {
@@ -99,13 +102,31 @@ void PowerManager::setRestartTime(uint16_t time) { _restartTime = time; }
 void PowerManager::setShutdownTime(uint16_t time) { _shutdownTime = time; }
 
 void PowerManager::goToSleep() {
-    Serial.println("Going to sleep now...");
-    //_expander->digitalWrite(_controlPin, LOW);  // Turn off backlight
-    digitalWrite(_controlPin, HIGH);
-    esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 0);
-    //esp_deep_sleep_start();
-    turnOffBacklight();
+    Serial.println("Going to sleep now..."); 
+    digitalWrite(_controlPin, HIGH); // Turn off backlight
+   turnOffBacklight();
+    pinMode(GPIO_NUM_4, INPUT); // Set GPIO 4 as input only to ensure it will wakeup
+    
+    // rtc_gpio_pullup_dis(GPIO_NUM_4); 
+    // rtc_gpio_pulldown_dis(GPIO_NUM_4);
+     rtc_gpio_pullup_dis(GPIO_NUM_6); 
+     rtc_gpio_pulldown_dis(GPIO_NUM_6);
+   
+    //esp_sleep_enable_ext0_wakeup(GPIO_NUM_6, 0);
+   // esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 0);
+    //esp_sleep_enable_ext1_wakeup((1ULL << 4) | (1ULL << 6), ESP_EXT1_WAKEUP_ANY_LOW);
+    esp_sleep_enable_ext1_wakeup((1ULL << GPIO_NUM_6), ESP_EXT1_WAKEUP_ANY_LOW);
+
+
+    
+    Serial.println("sleeping..."); 
+    int level = digitalRead(GPIO_NUM_4);
+//Serial.printf("INT pin level before sleep: %d\n", level);
+
+    Serial.flush();
     esp_light_sleep_start();
+    ///    esp_deep_sleep_start();
+
 }
 
 void PowerManager::restart() {

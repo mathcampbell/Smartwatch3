@@ -72,6 +72,10 @@ lv_obj_t * ui_Settings;
 void ui_event_MainArcSettingsMenu(lv_event_t * e);
 lv_obj_t * ui_MainArcSettingsMenu;
 lv_obj_t * ui____initial_actions0;
+lv_obj_t * action_container;
+lv_obj_t * bt_device_list;
+lv_obj_t *wifi_switch;
+//lv_obj_t *wifi_list;
 
 ///////////////////// TEST LVGL SETTINGS ////////////////////
 /* #if LV_COLOR_DEPTH != 16

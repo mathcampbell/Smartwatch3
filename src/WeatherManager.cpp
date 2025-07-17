@@ -58,17 +58,23 @@ const unsigned long timeout = 3000; // 3 seconds timeout
 
 while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < timeout) {
   Serial.print(".");
+  lv_obj_set_style_text_color(ui_WiFiLabel, lv_color_hex(0x005578), LV_PART_MAIN | LV_STATE_DEFAULT);
   delay(500);
+  lv_obj_set_style_text_color(ui_WiFiLabel, lv_color_hex(0x41C7FF), LV_PART_MAIN | LV_STATE_DEFAULT);
+
 }
 
 if (WiFi.status() != WL_CONNECTED) {
   Serial.println("Failed to connect to Wi-Fi within the timeout period.");
   // Handle the failed connection as needed
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
+  lv_obj_set_style_text_color(ui_WiFiLabel, lv_color_hex(0x005578), LV_PART_MAIN | LV_STATE_DEFAULT);
   return;
 } 
   
   Serial.println("Connected to Wi-Fi!");
-
+  lv_obj_set_style_text_color(ui_WiFiLabel, lv_color_hex(0x41C7FF), LV_PART_MAIN | LV_STATE_DEFAULT);
   Serial.println(WiFi.localIP());
 
    // Initialize NTP client
@@ -108,6 +114,7 @@ void saveWeatherDataToFile(const char* filePath, const WeatherData& weather) {
     doc["humidity"] = weather.humidity;
     doc["lastUpdate"] = weather.lastUpdate;
     doc["id"] = weather.id;
+    doc["moonphase"] = weather.moonphase;
     doc["dt"] = weather.dt;
     if (serializeJson(doc, file) == 0) {
         Serial.println("Failed to write to file");
@@ -141,6 +148,7 @@ bool loadWeatherDataFromFile(const char* filePath, WeatherData& weather) {
     weather.sunset = doc["sunset"].as<String>();
     weather.wind_speed = doc["wind_speed"].as<String>();
     weather.humidity = doc["humidity"].as<String>();
+    weather.moonphase = doc["moonphase"].as<String>();
     weather.lastUpdate = doc["lastUpdate"].as<unsigned long>();
     weather.id = doc["id"].as<uint16_t>(); 
     weather.dt = doc["dt"].as<unsigned long>();
@@ -164,6 +172,7 @@ void initializeWeatherData() {
         defaultWeather.sunset = "N/A";
         defaultWeather.wind_speed = "0";
         defaultWeather.humidity = "0";
+        defaultWeather.moonphase = "0";
         defaultWeather.lastUpdate = 0;
         defaultWeather.id = 666;
 
@@ -217,8 +226,21 @@ void updateWeatherData() {
         // Save updated weather data to file
         saveWeatherDataToFile("/weather.json", currentWeatherData); 
     }
-   
+
+    else {
         Serial.println("Weather data is up-to-date. Skipping fetch.");
+         if (!loadWeatherDataFromFile("/weather.json", currentWeatherData)) {
+        Serial.println("Failed to load weather data from file. Initializing defaults.");
+        currentWeatherData.dt = 0;  // Force fetch on first run
+         printCurrentWeather();
+
+        // Update `dt` with the current system time
+        //currentWeatherData.dt = static_cast<unsigned long>(currentTime);
+
+        // Save updated weather data to file
+        saveWeatherDataToFile("/weather.json", currentWeatherData); 
+    }
+  }
     
 
     // Update the UI with current weather data
@@ -233,6 +255,11 @@ void updateWeatherData() {
     lv_color_t sci_fi_blue = lv_color_make(0, 200, 255); // Cyan blue color
     lv_obj_set_style_img_recolor(ui_WeatherImage, sci_fi_blue, LV_PART_MAIN);
     lv_obj_set_style_img_recolor_opa(ui_WeatherImage, LV_OPA_90, LV_PART_MAIN);
+
+    WiFi.disconnect(true, false);
+    WiFi.mode(WIFI_OFF);
+    lv_obj_set_style_text_color(ui_WiFiLabel, lv_color_hex(0x005578), LV_PART_MAIN | LV_STATE_DEFAULT);
+    
 }
 
 /***************************************************************************************
@@ -438,6 +465,7 @@ void printCurrentWeather()
 
       Serial.println();
     }
+    currentWeatherData.moonphase = String(daily->moon_phase[0]);
   }
 
   // Delete to free up space and prevent fragmentation as strings change in length

@@ -19,7 +19,8 @@ struct WeatherData {
     String sunset;
     String wind_speed;
     String humidity;
-     unsigned long lastUpdate; 
+    String moonphase;
+    unsigned long lastUpdate; 
     uint16_t id;
     unsigned long dt;
 };

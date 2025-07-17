@@ -8,6 +8,7 @@
 // ui_clockscreen.c
 #include "ui_ClockScreen.h"
 #include "clock.h" // Include clock.h to access clock data
+#include "audio_bridge.h"
 
 //OLD VERSION
  /* void ui_ClockScreen_screen_init(void)
@@ -98,8 +99,8 @@ void ui_ClockScreen_screen_init(void) {
     // Main Arc Menu
 
      ui_MainArcClockMenu = lv_arc_create(ui_ClockScreen);
-    lv_obj_set_width(ui_MainArcClockMenu, 210); // Adjusted for 360x360
-    lv_obj_set_height(ui_MainArcClockMenu, 210);
+    lv_obj_set_width(ui_MainArcClockMenu, 250); // Adjusted for 360x360
+    lv_obj_set_height(ui_MainArcClockMenu, 250);
     lv_obj_set_align(ui_MainArcClockMenu, LV_ALIGN_CENTER);
     lv_arc_set_range(ui_MainArcClockMenu, 0, 500);
     lv_arc_set_value(ui_MainArcClockMenu, 200);
@@ -121,7 +122,7 @@ void ui_ClockScreen_screen_init(void) {
     // Create the scale (clock face)
     clock_scale = lv_scale_create(ui_ClockScreen);
     lv_obj_clear_flag(clock_scale, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_size(clock_scale, 360, 360);
+    lv_obj_set_size(clock_scale, 412, 412);
     lv_obj_center(clock_scale);
     lv_scale_set_mode(clock_scale, LV_SCALE_MODE_ROUND_INNER);
     //lv_obj_set_style_bg_opa(clock_scale, 255, 0);
@@ -195,6 +196,14 @@ void update_clock_screen(void) {
         // Clock screen is not active; no need to update
         return;
     }
+
+        static int8_t prev_second = -1;          // keeps its value between calls
+    if (second_value != prev_second) {       // <- second_value comes from your RTC
+        playSound("A:/lvgl/snd/tick.wav");
+
+        prev_second = second_value;
+    }
+
    // printf("updating clock screen \n");
     // Calculate angles
     int32_t hour_angle = ((hour_value % 12) * 30 * 10) + (minute_value * 5); // In LVGL angle units (0.1 degrees)
