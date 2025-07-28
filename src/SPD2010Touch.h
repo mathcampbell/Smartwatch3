@@ -8,6 +8,11 @@
 #define SPD2010_I2C_ADDRESS 0x53
 #define SPD2010_MAX_TOUCH_POINTS 10
 
+// Register used to enable/disable individual interrupts
+#define SPD2010_INT_MASK_REG 0x0014
+// Bit controlling AUX interrupt generation
+#define SPD2010_AUX_INT_BIT 0x08
+
 // Touch point structure
 struct TouchPoint {
     uint8_t id;
@@ -97,8 +102,9 @@ public:
     bool readFirmwareVersion();
     
     // Set interrupt callback
-    void setInterruptCallback(void (*callback)());    
+    void setInterruptCallback(void (*callback)());
     bool writeClearIntCommand();
+    bool enableAuxInterrupt(bool enable);
 
     
 private:

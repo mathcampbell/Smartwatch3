@@ -208,6 +208,19 @@ bool SPD2010Touch::readStatusLength(TouchStatus& status) {
     return true;
 }
 
+bool SPD2010Touch::enableAuxInterrupt(bool enable) {
+    uint8_t data[2];
+    if (!readRegister(SPD2010_INT_MASK_REG, data, 2)) {
+        return false;
+    }
+    if (enable) {
+        data[0] |= SPD2010_AUX_INT_BIT;
+    } else {
+        data[0] &= ~SPD2010_AUX_INT_BIT;
+    }
+    return writeCommand(SPD2010_INT_MASK_REG, data, 2);
+}
+
 bool SPD2010Touch::readHDP(const TouchStatus& status, TouchData& touch) {
     uint8_t data[64]; // Maximum expected data size
     if (!readRegister(0x0300, data, status.read_len)) {
