@@ -105,7 +105,7 @@ void PowerManager::goToSleep() {
     Serial.println("Going to sleep now..."); 
     digitalWrite(_controlPin, HIGH); // Turn off backlight
    turnOffBacklight();
-    pinMode(GPIO_NUM_4, INPUT); // Set GPIO 4 as input only to ensure it will wakeup
+    //pinMode(GPIO_NUM_4, INPUT); // Set GPIO 4 as input only to ensure it will wakeup
     
     // rtc_gpio_pullup_dis(GPIO_NUM_4); 
     // rtc_gpio_pulldown_dis(GPIO_NUM_4);

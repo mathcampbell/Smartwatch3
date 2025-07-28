@@ -2,6 +2,7 @@
 #include "AudioTools.h"
 #include "AudioTools/Disk/AudioSourceSD.h"
 #include "AudioTools/AudioCodecs/CodecMP3Helix.h"
+#include "AudioTools/Disk/AudioSourceLittleFS.h"
 
 using namespace audio_tools;          // shortens the names
 
@@ -25,7 +26,7 @@ private:
     AudioManager() = default;
 
     /* -- AudioTools objects ------------------------------------------------ */
-    AudioSourceSD    source{"/", ".mp3"};   // start path, default ext filter
+    AudioSourceLittleFS    source{"/", ".mp3"};   // start path, default ext filter
     I2SStream        i2s;
     MP3DecoderHelix  decoder;
     AudioPlayer      player{source, i2s, decoder};

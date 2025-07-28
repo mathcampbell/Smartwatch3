@@ -32,6 +32,8 @@
 #include "WeatherManager.h"
 #include "SettingsManager.h"
 #include "ui_Settings.h"
+#include "audio_bridge.h"
+
 
 
 //////////////////// DEFINITIONS ///////////////////////////////
@@ -557,6 +559,8 @@ screenHeight = gfx->height();
 /* Setting up the Audio now*/
 AudioManager::instance().begin(/*BCK*/48, /*LRCK*/38, /*DATA*/47);
 
+playSound("/lvgl/snd/intro_chime.mp3");
+  Serial.println("intro chime played");
 
 
     adc_init(); // Initialize ADC
@@ -709,6 +713,7 @@ void loop()
 
     if (currentTime - last_weather_update >= 360000 | checkWeatherFlag) {
         //updateWeatherData();
+        Serial.printf("Free heap: %u\n", esp_get_free_heap_size());
         WeatherInit();
         last_weather_update = currentTime;
         checkWeatherFlag = false;

@@ -87,7 +87,7 @@ lv_obj_t * second_hand_line;
 
 void ui_ClockScreen_screen_init(void) {
     // Create the clock screen
-    printf("Creating clock Screen\n");
+    //printf("Creating clock Screen\n");
     ui_ClockScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ClockScreen, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -199,7 +199,7 @@ void update_clock_screen(void) {
 
         static int8_t prev_second = -1;          // keeps its value between calls
     if (second_value != prev_second) {       // <- second_value comes from your RTC
-        playSound("A:/lvgl/snd/tick.wav");
+        playSound("/lvgl/snd/tick.mp3");
 
         prev_second = second_value;
     }
@@ -209,7 +209,7 @@ void update_clock_screen(void) {
     int32_t hour_angle = ((hour_value % 12) * 30 * 10) + (minute_value * 5); // In LVGL angle units (0.1 degrees)
     int32_t minute_angle = minute_value * 6 * 10; // 6 degrees per minute
     int32_t second_angle = second_value * 6 * 10; // 6 degrees per second
-    printf("Setting hour hand value %d .\n", hour_value);
+    //printf("Setting hour hand value %d .\n", hour_value);
 
     // Map the hour to the 0-60 scale
 float hour_base_value = hour_value * 5.0f; // Each hour corresponds to 5 units

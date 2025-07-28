@@ -4,10 +4,10 @@
 void AudioManager::begin(int bck, int lrck, int data, uint32_t hz)
 {
     /* 1. bring up SD – the standard Arduino SD.h works fine */
-    if (!SD.begin()) {
+    /* if (!SD.begin()) {
         Serial.println("SD init failed");   // keep loud until stable
         return;
-    }
+    } */
 
     /* 2. configure the PCM5101 I²S bus */
     auto cfg = i2s.defaultConfig(TX_MODE);
@@ -17,6 +17,8 @@ void AudioManager::begin(int bck, int lrck, int data, uint32_t hz)
     cfg.sample_rate     = hz;
     cfg.bits_per_sample = 16;
     cfg.channels        = 2;
+    cfg.auto_clear   = true;       // ← NEW: wipe DMA before every begin()
+
     i2s.begin(cfg);
 
     /* 3. prime the player – nothing plays until play() is called */
@@ -26,6 +28,14 @@ void AudioManager::begin(int bck, int lrck, int data, uint32_t hz)
 /* Non-blocking one-shot playback */
 void AudioManager::play(const char* path)
 {
-    source.selectStream(path);   // point the source at that file
-    player.begin();              // (re)start decoding pipeline
+     // do we need to interrupt?
+  /* 1. hard-interrupt anything that might still be in the buffers          */
+    player.end();          // same as old stop();  safe even if idle
+    i2s.flush();           // empties all DMA frames
+    
+
+        bool ok = source.selectStream(path);
+    //Serial.printf("[Audio] select %s : %s\n", path, ok ? "OK" : "FAIL");
+       player.setPath(path);
+    if (ok) player.playPath(path);
 }
