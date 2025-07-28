@@ -680,9 +680,11 @@ void loop()
     // Inactivity check for sleep
     if (millis() - lastInteractionTime > (currentSettings.sleep_duration *1000)) {
         setJustAwakeFlag = true;
-           touch.writeClearIntCommand();
-           delay(10);
+        touch.enableAuxInterrupt(false);
+        touch.writeClearIntCommand();
+        delay(10);
         powerManager.goToSleep();
+        touch.enableAuxInterrupt(true);
     }
 
      if(millis() - lastInteractionTime > (currentSettings.screen_dim_duration *1000) && !isScreenDimmed) {
