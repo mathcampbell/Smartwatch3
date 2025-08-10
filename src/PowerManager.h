@@ -2,6 +2,7 @@
 #include "Arduino.h"
 #include <Adafruit_XCA9554.h>  // For I/O Expander backlight control
 
+
 // Define power states and timing thresholds
 enum DeviceState { ACTIVE, SLEEP, RESTART, SHUTDOWN };
 

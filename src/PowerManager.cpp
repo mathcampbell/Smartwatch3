@@ -3,6 +3,7 @@
 #include "driver/rtc_io.h"
 
 
+
 PowerManager::PowerManager(uint8_t pwrKeyPin, uint8_t controlPin, Adafruit_XCA9554 *expander)
     : _pwrKeyPin(pwrKeyPin), _controlPin(controlPin), _expander(expander),
       _longPressCount(0), _state(ACTIVE),
@@ -105,27 +106,30 @@ void PowerManager::goToSleep() {
     Serial.println("Going to sleep now..."); 
     digitalWrite(_controlPin, HIGH); // Turn off backlight
    turnOffBacklight();
-    //pinMode(GPIO_NUM_4, INPUT); // Set GPIO 4 as input only to ensure it will wakeup
+
+  
+
+   // pinMode(GPIO_NUM_4, INPUT); // Set GPIO 4 as input only to ensure it will wakeup
     
-    // rtc_gpio_pullup_dis(GPIO_NUM_4); 
-    // rtc_gpio_pulldown_dis(GPIO_NUM_4);
-     rtc_gpio_pullup_dis(GPIO_NUM_6); 
-     rtc_gpio_pulldown_dis(GPIO_NUM_6);
+
+    
    
     //esp_sleep_enable_ext0_wakeup(GPIO_NUM_6, 0);
-   // esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 0);
-    //esp_sleep_enable_ext1_wakeup((1ULL << 4) | (1ULL << 6), ESP_EXT1_WAKEUP_ANY_LOW);
-    esp_sleep_enable_ext1_wakeup((1ULL << GPIO_NUM_6), ESP_EXT1_WAKEUP_ANY_LOW);
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 0);
+   // esp_sleep_enable_ext1_wakeup(1ULL << GPIO_NUM_4, ESP_EXT1_WAKEUP_ANY_LOW);
+   // esp_sleep_enable_ext1_wakeup((1ULL << GPIO_NUM_6), ESP_EXT1_WAKEUP_ANY_LOW);
 
-
+     rtc_gpio_pullup_en(GPIO_NUM_4); 
+     rtc_gpio_pulldown_dis(GPIO_NUM_4);
     
     Serial.println("sleeping..."); 
     int level = digitalRead(GPIO_NUM_4);
-//Serial.printf("INT pin level before sleep: %d\n", level);
+    Serial.printf("INT pin level before sleep: %d\n", level);
 
     Serial.flush();
     esp_light_sleep_start();
     ///    esp_deep_sleep_start();
+
 
 }
 

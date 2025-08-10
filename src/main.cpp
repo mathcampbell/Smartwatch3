@@ -182,6 +182,8 @@ SPD2010Touch touch(Wire, TOUCH_RST, TOUCH_PIN, &expander);
 } */
 void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
+  //Serial.printf("Flushing %d,%d to %d,%d\n", area->x1, area->y1, area->x2, area->y2);
+
     #ifndef DIRECT_MODE
     uint32_t w = lv_area_get_width(area);
     uint32_t h = lv_area_get_height(area);
@@ -209,7 +211,7 @@ void undimScreen() {
 /*Read the touchpad*/
 void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
-  //Serial.print("Trying to read touch");
+ // Serial.print("Trying to read touch");
  // Serial.printf("INT pin: %d\n", digitalRead(TOUCH_PIN));
 
      static uint32_t lastPoll = 0;
@@ -217,7 +219,14 @@ void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
         data->state = LV_INDEV_STATE_RELEASED;
         return;
     }
-    lastPoll = millis();                    // now safe to poll driver
+    lastPoll = millis();    
+    
+    bool irq_active = (digitalRead(TOUCH_PIN) == LOW);
+if (!irq_active && !touch.available()) {       // both say “no event”
+    data->state = LV_INDEV_STATE_RELEASED;
+    return;
+}
+
 
   static int last_x = 0;
   static int last_y = 0;
@@ -559,8 +568,8 @@ screenHeight = gfx->height();
 /* Setting up the Audio now*/
 AudioManager::instance().begin(/*BCK*/48, /*LRCK*/38, /*DATA*/47);
 
-playSound("/lvgl/snd/intro_chime.mp3");
-  Serial.println("intro chime played");
+//playSound("/lvgl/snd/intro_chime.mp3"); // turning off the intro chime cos it's pissing me off.
+//  Serial.println("intro chime played");
 
 
     adc_init(); // Initialize ADC
@@ -685,10 +694,19 @@ void loop()
     if (millis() - lastInteractionTime > (currentSettings.sleep_duration *1000)) {
         setJustAwakeFlag = true;
         touch.enableAuxInterrupt(false);
-        touch.writeClearIntCommand();
+       // touch.writeClearIntCommand();
+        touch.prepareForSleepWake();
         delay(10);
         powerManager.goToSleep();
-        touch.enableAuxInterrupt(true);
+       // touch.enableAuxInterrupt(true);
+
+       touch.setActive();
+      if (digitalRead(GPIO_NUM_4) == LOW || touch.available()) {
+    TouchData tmp;
+    touch.read(tmp);       // clears any latched INT cleanly
+}
+       
+
     }
 
      if(millis() - lastInteractionTime > (currentSettings.screen_dim_duration *1000) && !isScreenDimmed) {

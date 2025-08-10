@@ -5,15 +5,16 @@
 #include <Wire.h>
 #include <Adafruit_XCA9554.h>
 
-#define SPD2010_I2C_ADDRESS 0x53
-#define SPD2010_MAX_TOUCH_POINTS 10
+#define SPD2010_I2C_ADDRESS        0x53
+#define SPD2010_MAX_TOUCH_POINTS   10
 
 // Register used to enable/disable individual interrupts
-#define SPD2010_INT_MASK_REG 0x0014
+#define SPD2010_INT_MASK_REG       0x0014
 // Bit controlling AUX interrupt generation
-#define SPD2010_AUX_INT_BIT 0x08
+#define SPD2010_AUX_INT_BIT        0x08
 
-// Touch point structure
+// ---------------------- Touch Data Structures ----------------------
+
 struct TouchPoint {
     uint8_t id;
     uint16_t x;
@@ -21,7 +22,6 @@ struct TouchPoint {
     uint8_t weight;
 };
 
-// Touch data structure
 struct TouchData {
     TouchPoint points[SPD2010_MAX_TOUCH_POINTS];
     uint8_t touch_count;
@@ -34,27 +34,26 @@ struct TouchData {
     uint16_t up_y;
 };
 
-// Status structures (internal use)
 struct StatusLow {
-    uint8_t pt_exist : 1;
-    uint8_t gesture : 1;
-    uint8_t key : 1;
-    uint8_t aux : 1;
-    uint8_t keep : 1;
-    uint8_t raw_or_pt : 1;
-    uint8_t none6 : 1;
-    uint8_t none7 : 1;
+    uint8_t pt_exist    : 1;
+    uint8_t gesture     : 1;
+    uint8_t key         : 1;
+    uint8_t aux         : 1;
+    uint8_t keep        : 1;
+    uint8_t raw_or_pt   : 1;
+    uint8_t none6       : 1;
+    uint8_t none7       : 1;
 };
 
 struct StatusHigh {
-    uint8_t none0 : 1;
-    uint8_t none1 : 1;
-    uint8_t none2 : 1;
-    uint8_t cpu_run : 1;
-    uint8_t tint_low : 1;
-    uint8_t tic_in_cpu : 1;
+    uint8_t none0       : 1;
+    uint8_t none1       : 1;
+    uint8_t none2       : 1;
+    uint8_t cpu_run     : 1;
+    uint8_t tint_low    : 1;
+    uint8_t tic_in_cpu  : 1;
     uint8_t tic_in_bios : 1;
-    uint8_t tic_busy : 1;
+    uint8_t tic_busy    : 1;
 };
 
 struct TouchStatus {
@@ -68,45 +67,32 @@ struct HDPStatus {
     uint16_t next_packet_len;
 };
 
+// ---------------------- Class Declaration ----------------------
+
 class SPD2010Touch {
 public:
-    // Constructor
-    SPD2010Touch(TwoWire& wire = Wire, int reset_pin = -1, int interrupt_pin = -1, 
+    SPD2010Touch(TwoWire& wire = Wire, int reset_pin = -1, int interrupt_pin = -1,
                  Adafruit_XCA9554* expander = nullptr);
-    
-    // Initialize the touch controller
+
     bool begin();
-    
-    // Hardware reset
     void reset();
-    
-    // Check if touch data is available
+
     bool available();
-    
-    // Read touch data
     bool read(TouchData& data);
-    
-    // Get single touch point (for simple use cases)
     bool getTouch(uint16_t& x, uint16_t& y, uint8_t& weight);
-    
-    // Get multiple touch points
     uint8_t getTouchPoints(TouchPoint* points, uint8_t max_points);
-    
-    // Check if currently touched
     bool isTouched();
-    
-    // Get gesture (if available)
     uint8_t getGesture();
-    
-    // Read firmware version
+
     bool readFirmwareVersion();
-    
-    // Set interrupt callback
     void setInterruptCallback(void (*callback)());
     bool writeClearIntCommand();
     bool enableAuxInterrupt(bool enable);
 
+    void prepareForSleepWake();
+    void setActive();
     
+
 private:
     TwoWire* _wire;
     int _reset_pin;
@@ -114,26 +100,24 @@ private:
     TouchData _touch_data;
     bool _interrupt_flag;
     Adafruit_XCA9554* _expander;
-    
-    // Internal communication methods
+
+   
+    void setIdle();
+
     bool writeCommand(uint16_t reg, const uint8_t* data, uint8_t length);
     bool readRegister(uint16_t reg, uint8_t* data, uint8_t length);
-    
-    // Command methods
+
     bool writePointModeCommand();
     bool writeStartCommand();
     bool writeCpuStartCommand();
-    
-    // Status reading methods
+
     bool readStatusLength(TouchStatus& status);
     bool readHDP(const TouchStatus& status, TouchData& touch);
     bool readHDPStatus(HDPStatus& hdp_status);
     bool readHDPRemainData(const HDPStatus& hdp_status);
-    
-    // Main data reading method
+
     bool readTouchData(TouchData& touch);
-    
-    // Interrupt service routine (static)
+
     static void IRAM_ATTR interruptHandler();
     static SPD2010Touch* _instance;
 };
