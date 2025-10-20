@@ -10,6 +10,7 @@
 #include "clock.h" // Include clock.h to access clock data
 #include "audio_bridge.h"
 
+
 //OLD VERSION
  /* void ui_ClockScreen_screen_init(void)
 {
@@ -128,17 +129,49 @@ void ui_ClockScreen_screen_init(void) {
     //lv_obj_set_style_bg_opa(clock_scale, 255, 0);
     lv_obj_set_style_bg_img_src(clock_scale, &watch360, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_radius(clock_scale, LV_RADIUS_CIRCLE, 0);
-    //lv_obj_set_style_clip_corner(clock_scale, true, 0);
 
-  //  lv_scale_set_label_show(clock_scale, true);
-  //  lv_scale_set_total_tick_count(clock_scale, 61);
-  //  lv_scale_set_major_tick_every(clock_scale, 5);
+    // --- tick & label setup for 5-second intervals ---
+    lv_scale_set_label_show(clock_scale, true);
+    lv_scale_set_total_tick_count(clock_scale, 61);   // 0–60 inclusive
+    lv_scale_set_major_tick_every(clock_scale, 5);    // every 5 = major tick
+    lv_scale_set_range(clock_scale, 0, 60);
+    lv_scale_set_angle_range(clock_scale, 360);
+    lv_scale_set_rotation(clock_scale, 270);          // 0/60 at 12 o’clock
 
-   // static const char * hour_ticks[] = {"12", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", NULL};
-   // lv_scale_set_text_src(clock_scale, hour_ticks);
+    // Custom text labels: top is 60, skip duplicate at 60
+    static const char * const five_sec_labels[] = {
+        "60", "5", "10", "15", "20", "25", "30",
+        "35", "40", "45", "50", "55", "", NULL
+    };
+    lv_scale_set_text_src(clock_scale, five_sec_labels);
 
-    // Set styles for the scale (ticks, labels)
-    // ... (Copy styles from the LVGL example or customize as needed)
+    // -------- Style section --------
+
+    // --- Minor ticks (1-second marks) ---
+    lv_obj_set_style_line_width(clock_scale, 1, LV_PART_ITEMS);      // thin
+    lv_obj_set_style_length(clock_scale, 6, LV_PART_ITEMS);          // short
+    lv_obj_set_style_line_color(clock_scale, lv_color_hex(0x303030), LV_PART_ITEMS);
+    lv_obj_set_style_line_opa(clock_scale, LV_OPA_100, LV_PART_ITEMS);
+
+    // --- Major ticks (5-second marks) ---
+    lv_obj_set_style_line_width(clock_scale, 3, LV_PART_INDICATOR);  // thicker
+    lv_obj_set_style_length(clock_scale, 12, LV_PART_INDICATOR);     // longer
+    lv_obj_set_style_line_color(clock_scale, lv_color_hex(0x000000), LV_PART_INDICATOR);
+    lv_obj_set_style_line_opa(clock_scale, LV_OPA_COVER, LV_PART_INDICATOR);
+
+    // --- Label text (shares LV_PART_INDICATOR) ---
+    lv_obj_set_style_text_color(clock_scale, lv_color_hex(0x4169E1), LV_PART_INDICATOR); // Royal Blue
+    lv_obj_set_style_text_opa(clock_scale, LV_OPA_COVER, LV_PART_INDICATOR);
+
+    // Rotate labels to match tick angle (no KEEP_UPRIGHT -> bottom labels are upside-down)
+    lv_obj_set_style_transform_rotation(clock_scale, LV_SCALE_LABEL_ROTATE_MATCH_TICKS + 900, LV_PART_INDICATOR);
+    // Apply an extra rotation offset of -90° (units = 0.1°)
+  //  lv_obj_set_style_transform_angle(clock_scale, 0, LV_PART_INDICATOR);
+    // If that flips the wrong way on your build, use +900 instead.
+
+
+    // Fine-tune spacing of labels
+    lv_obj_set_style_pad_all(clock_scale, 4, LV_PART_INDICATOR);
 
     lv_scale_set_range(clock_scale, 0, 60);
     lv_scale_set_angle_range(clock_scale, 360);

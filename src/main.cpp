@@ -673,6 +673,7 @@ void loop()
             Serial.println("Woke up from light sleep...");
           powerManager.initBacklight(); // Re-enable the backlight
           setJustAwakeFlag = false;
+          lastInteractionTime = millis(); // Reset last interaction time
         }
       }
 
@@ -690,24 +691,45 @@ void loop()
 
 
 
-    // Inactivity check for sleep
-    if (millis() - lastInteractionTime > (currentSettings.sleep_duration *1000)) {
-        setJustAwakeFlag = true;
-        touch.enableAuxInterrupt(false);
-       // touch.writeClearIntCommand();
-        touch.prepareForSleepWake();
-        delay(10);
-        powerManager.goToSleep();
-       // touch.enableAuxInterrupt(true);
+// Inactivity check for sleep
+if (millis() - lastInteractionTime > (currentSettings.sleep_duration * 1000)) {
+    setJustAwakeFlag = true;
 
-       touch.setActive();
-      if (digitalRead(GPIO_NUM_4) == LOW || touch.available()) {
-    TouchData tmp;
-    touch.read(tmp);       // clears any latched INT cleanly
-}
-       
-
+    // Tell the driver to enter LPM and only proceed if INT is truly HIGH
+    if (!touch.prepareForSleepWake()) {
+        // Controller not quiet = skip sleeping this loop, try later
+        lastInteractionTime = millis();   // prevent immediate re-hit of the sleep condition
+        delay(5);
+        return;                         // <— simpler & safer than a goto
     }
+
+    // (Optional) ensure wake source is what you expect; harmless if already set in PowerManager
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 0);
+    Serial.printf("INT pin level just before sleep: %d\n", digitalRead(GPIO_NUM_4));
+
+    // Actually sleep — this returns only after EXT0 fires
+    powerManager.goToSleep();
+
+    // ==== We are awake again here ====
+
+    // Prevent immediate re-sleep
+    lastInteractionTime = millis();
+    setJustAwakeFlag = false;
+
+    // One-shot drain: if wake was from a real touch, INT may still be LOW; clear it once
+    for (uint8_t i = 0; i < 3 && (digitalRead(GPIO_NUM_4) == LOW || touch.available()); ++i) {
+        TouchData tmp; 
+        touch.read(tmp);   // clears any latched INT cleanly (ACK-only in your driver)
+        delay(1);
+    }
+
+    // Resume normal scanning
+    touch.setActive();
+
+    // Start a fresh loop iteration cleanly
+    return;
+}
 
      if(millis() - lastInteractionTime > (currentSettings.screen_dim_duration *1000) && !isScreenDimmed) {
         dimScreen();

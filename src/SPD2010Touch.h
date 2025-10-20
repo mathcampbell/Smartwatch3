@@ -9,9 +9,17 @@
 #define SPD2010_MAX_TOUCH_POINTS   10
 
 // Register used to enable/disable individual interrupts
-#define SPD2010_INT_MASK_REG       0x0014
-// Bit controlling AUX interrupt generation
+
 #define SPD2010_AUX_INT_BIT        0x08
+#define SPD2010_INT_MASK_POINT   0x0001
+#define SPD2010_INT_MASK_REG  0x0062  // INT flag/mask register (16-bit)
+#define SPD2010_INT_MASK_GEST    0x0002
+#define SPD2010_INT_MASK_KEY     0x0004
+#define SPD2010_INT_MASK_AUX     0x0008
+#define SPD2010_POWER_MODE_REG   0x002F  // 0x0001 = NM, 0x0002 = LPM
+
+
+
 
 // ---------------------- Touch Data Structures ----------------------
 
@@ -86,11 +94,16 @@ public:
 
     bool readFirmwareVersion();
     void setInterruptCallback(void (*callback)());
-    bool writeClearIntCommand();
+    bool writeClearIntCommand(bool rearm);
     bool enableAuxInterrupt(bool enable);
 
-    void prepareForSleepWake();
+    bool prepareForSleepWake();
     void setActive();
+    bool setPowerModeNormal();
+    bool setPowerModeLow();
+
+    bool waitIntHigh(uint32_t timeout_ms);
+
     
 
 private:

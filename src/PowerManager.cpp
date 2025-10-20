@@ -104,31 +104,38 @@ void PowerManager::setShutdownTime(uint16_t time) { _shutdownTime = time; }
 
 void PowerManager::goToSleep() {
     Serial.println("Going to sleep now..."); 
-    digitalWrite(_controlPin, HIGH); // Turn off backlight
+  //  digitalWrite(_controlPin, HIGH); // Turn off backlight
    turnOffBacklight();
 
   
 
    // pinMode(GPIO_NUM_4, INPUT); // Set GPIO 4 as input only to ensure it will wakeup
     
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
 
+    // Keep RTC peripherals on so EXT0 works in light sleep
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
     
    
-    //esp_sleep_enable_ext0_wakeup(GPIO_NUM_6, 0);
+    
     esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 0);
-   // esp_sleep_enable_ext1_wakeup(1ULL << GPIO_NUM_4, ESP_EXT1_WAKEUP_ANY_LOW);
-   // esp_sleep_enable_ext1_wakeup((1ULL << GPIO_NUM_6), ESP_EXT1_WAKEUP_ANY_LOW);
+//gpio_wakeup_enable(GPIO_NUM_4, GPIO_INTR_LOW_LEVEL);
+   // esp_sleep_enable_gpio_wakeup();
 
-     rtc_gpio_pullup_en(GPIO_NUM_4); 
-     rtc_gpio_pulldown_dis(GPIO_NUM_4);
     
     Serial.println("sleeping..."); 
     int level = digitalRead(GPIO_NUM_4);
     Serial.printf("INT pin level before sleep: %d\n", level);
 
     Serial.flush();
-    esp_light_sleep_start();
+   // esp_light_sleep_start();
     ///    esp_deep_sleep_start();
+     // *** Actually sleep ***
+    esp_err_t err = esp_light_sleep_start();
+
+    // We should only get here AFTER a wake event
+    Serial.printf("Light sleep returned: err=%d, cause=%d\n",
+                  (int)err, (int)esp_sleep_get_wakeup_cause());
 
 
 }
@@ -142,5 +149,8 @@ void PowerManager::shutdown() {
     Serial.println("Shutting down device...");
     //_expander->digitalWrite(_controlPin, LOW);  // Turn off backlight
     digitalWrite(_controlPin, LOW);
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 0); // Enable wakeup on GPIO 4
+    esp_deep_sleep_start(); // Enter deep sleep mode
+    
     // Additional shutdown logic if necessary
 }

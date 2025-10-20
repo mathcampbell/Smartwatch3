@@ -9,6 +9,10 @@ SPD2010Touch::SPD2010Touch(TwoWire& wire, int reset_pin, int interrupt_pin, Adaf
     _instance = this;
 }
 
+// NEW: track low-power state
+bool _in_lpm = false;  // add as a private member
+
+
 bool SPD2010Touch::begin() {
     if (!_wire) return false;
 
@@ -29,11 +33,23 @@ bool SPD2010Touch::begin() {
     delay(100);
     readFirmwareVersion();
 
-    // Make sure AUX IRQs are disabled
-    enableAuxInterrupt(false);
+    // Make sure we’re in CPU mode and scanning in point mode
+    setActive();   // will CPU-start if BIOS, set point mode, start scan, clear INT
 
-    // Enter normal active scan mode for runtime
-    setActive();
+    // ===== Mask AUX events: only allow Point + Gesture + Key =====
+    // Write an explicit mask so AUX will NOT assert INT ever.
+    // (Some firmwares ignore read-modify-write; set the bits explicitly.)
+    {
+        uint16_t mask = SPD2010_INT_MASK_POINT | SPD2010_INT_MASK_GEST | SPD2010_INT_MASK_KEY; // 0x0007
+        uint8_t m[2] = { (uint8_t)(mask & 0xFF), (uint8_t)(mask >> 8) };
+        writeCommand(SPD2010_INT_MASK_REG, m, 2);
+    }
+
+    // If you *never* use keys, you can reduce to touches+gestures only:
+    // uint16_t mask = SPD2010_INT_MASK_POINT | SPD2010_INT_MASK_GEST; // 0x0003
+
+    // Default to Normal mode at boot
+    setPowerModeNormal();
 
     return true;
 }
@@ -107,40 +123,92 @@ void SPD2010Touch::setInterruptCallback(void (*callback)()) {
     // Not used in this implementation; available() is polled.
 }
 
+/* -------------------- NEW: power-mode helpers -------------------- */
+
+// Public helpers you can call around sleep/display state.
+bool SPD2010Touch::setPowerModeNormal() {
+  const uint8_t nm[2] = { 0x00, 0x90 };
+  return writeCommand(0x0046, nm, 2)   // power = NM
+      && writeClearIntCommand(false)   // ACK only
+      && writePointModeCommand()       // 0x0050 ← 0x0000
+      && writeStartCommand();          // 0x0046 ← 0x0000 (Touch START)
+}
+
+
+// 0x0046 ← 0x0190 (LPM)
+bool SPD2010Touch::setPowerModeLow() {
+  const uint8_t lpm[2] = { 0x01, 0x90 };
+  // ACK once and DO NOT re-arm while sleeping
+  return writeCommand(0x0046, lpm, 2) && writeClearIntCommand(false);
+}
+
 /* -------------------- NEW: runtime mode helpers -------------------- */
 
 void SPD2010Touch::setActive() {
-    // Ensure we’re not stuck in BIOS
-    TouchStatus s;
-    if (readStatusLength(s) && s.status_high.tic_in_bios) {
-        writeClearIntCommand();
-        writeCpuStartCommand();
-        delay(2);
-    }
+  // If BIOS, start CPU first
+  TouchStatus s;
+  if (readStatusLength(s) && s.status_high.tic_in_bios) {
+    writeClearIntCommand(false);  // ACK-only
+    writeCpuStartCommand();
+    delay(2);
+  }
+  attachInterrupt(digitalPinToInterrupt(_interrupt_pin), interruptHandler, FALLING);
 
-    // Start normal scan path (point mode + start), then clear/re‑arm INT
-    writePointModeCommand();   // 0x0050 ← 0x0000
-    writeStartCommand();       // 0x0046 ← 0x0000
-    writeClearIntCommand();
+  // Back to NM and resume scanning
+  setPowerModeNormal();           // does NM + ACK + POINT + START
+  _in_lpm = false;
 }
 
 void SPD2010Touch::setIdle() {
-    // Use the ESP-IDF “power down scan” path: 0xFC00 ← 0x0001
-    uint8_t pd[2] = {0x01, 0x00};
-    writeCommand(0xFC00, pd, 2);
-
-    // Make sure INT is released before sleep
-    writeClearIntCommand();
-
-    // Do NOT send point/start here; we want the controller quiescent.
+  // Low Power Mode (LPM): 0x0046 ← 0x0190 (low,high)
+  setPowerModeLow();
+  // Clear once WITHOUT re-arming so the line stays quiet
+  writeClearIntCommand(false);
+  _in_lpm = true;
 }
 
-/* --------- prepareForSleepWake becomes a simple setIdle wrapper ----- */
+/* --------- prepareForSleepWake becomes a simple LPM wrapper ----- */
+bool SPD2010Touch::waitIntHigh(uint32_t timeout_ms) {
+  uint32_t t0 = millis();
+  while (millis() - t0 < timeout_ms) {
+    if (_interrupt_pin < 0 || digitalRead(_interrupt_pin) == HIGH) return true;
+    // TINT requested a clear; ACK-only so we do not re-arm
+    writeClearIntCommand(false);
+    delay(2);
+  }
+  return false;
+}
+bool SPD2010Touch::prepareForSleepWake() {
+  Serial.println("Preparing SPD2010 for sleep-based wake-on-touch...");
 
-void SPD2010Touch::prepareForSleepWake() {
-    Serial.println("Preparing SPD2010 for sleep-based wake-on-touch...");
-    setIdle();
-    Serial.println("SPD2010 ready to wake from real touch only");
+  // LPM via 0x0046<-0x0190, ACK-only is correct
+  //setPowerModeLow();
+
+  // Drain TINT until pin goes HIGH (you already had this)
+  bool ok = waitIntHigh(120);            // give it a bit more headroom
+  if (!ok) {
+    Serial.println("Abort sleep: SPD2010 INT stuck LOW after LPM.");
+    _in_lpm = false;                     // we’re not sleeping
+    return false;
+  }
+
+  // Belt-and-braces: confirm with one last SnL read that TINT==0
+  TouchStatus s;
+  if (readStatusLength(s) && s.status_high.tint_low) {
+    // Still requesting clear? ACK once and re-check pin
+    writeClearIntCommand(false);
+    delay(2);
+    if (_interrupt_pin >= 0 && digitalRead(_interrupt_pin) == LOW) {
+      Serial.println("Abort sleep: SnL shows TINT low.");
+      _in_lpm = false;
+      return false;
+    }
+  }
+
+ // detachInterrupt(digitalPinToInterrupt(_interrupt_pin));
+ // _in_lpm = true;
+//  Serial.println("SPD2010 in Low-Power Mode (LPM); will wake only on touch/gesture.");
+  return true;
 }
 
 /* ------------------------------------------------------------------- */
@@ -181,28 +249,15 @@ bool SPD2010Touch::writeCpuStartCommand() {
     return writeCommand(0x0004, data, 2);
 }
 
-bool SPD2010Touch::writeClearIntCommand() {
-    static const uint8_t ack[2]  = { 0x01, 0x00 };   // ACK
-    static const uint8_t rear[2] = { 0x00, 0x00 };   // re‑arm
-
-    if (!writeCommand(0x0002, ack, 2)) return false;
+bool SPD2010Touch::writeClearIntCommand(bool rearm) {
+  static const uint8_t ack[2]  = { 0x01, 0x00 }; // ACK
+  static const uint8_t arm[2]  = { 0x00, 0x00 }; // re‑arm
+  if (!writeCommand(0x0002, ack, 2)) return false;
+  if (rearm) {
     delayMicroseconds(200);
-    if (!writeCommand(0x0002, rear, 2)) return false;
-
-    // Ensure INT is released
-    uint32_t t0 = millis();
-    while (digitalRead(_interrupt_pin) == LOW) {
-        if (millis() - t0 > 2) {
-            if (!writeCommand(0x0002, ack, 2)) return false;
-            delayMicroseconds(200);
-            if (!writeCommand(0x0002, rear, 2)) return false;
-            t0 = millis();
-        }
-        if (millis() - t0 > 10) {
-            return false; // controller never released INT
-        }
-    }
-    return true;
+    if (!writeCommand(0x0002, arm, 2)) return false;
+  }
+  return true;
 }
 
 bool SPD2010Touch::readStatusLength(TouchStatus& status) {
@@ -230,10 +285,14 @@ bool SPD2010Touch::readStatusLength(TouchStatus& status) {
 }
 
 bool SPD2010Touch::enableAuxInterrupt(bool enable) {
+    // Keep as a helper, but prefer explicit mask write in begin()
     uint8_t data[2];
     if (!readRegister(SPD2010_INT_MASK_REG, data, 2)) return false;
-    if (enable) data[0] |=  SPD2010_AUX_INT_BIT;
-    else        data[0] &= ~SPD2010_AUX_INT_BIT;
+    uint16_t ms = (uint16_t)data[0] | ((uint16_t)data[1] << 8);
+    if (enable) ms |=  SPD2010_INT_MASK_AUX;
+    else        ms &= ~SPD2010_INT_MASK_AUX;
+    data[0] = (uint8_t)(ms & 0xFF);
+    data[1] = (uint8_t)(ms >> 8);
     return writeCommand(SPD2010_INT_MASK_REG, data, 2);
 }
 
@@ -280,8 +339,16 @@ bool SPD2010Touch::readHDP(const TouchStatus& status, TouchData& touch) {
 }
 
 bool SPD2010Touch::readHDPStatus(HDPStatus& hdp_status) {
-    uint8_t data[8];
+/*     uint8_t data[8];
     if (!readRegister(0xFC02, data, 8)) return false;
+
+    hdp_status.status = data[5]; // reference impl uses [5]
+    hdp_status.next_packet_len = data[2] | (data[3] << 8);
+    return true; */
+
+    //these changes were suggested to match the reference.
+        uint8_t data[8];
+    if (!readRegister(0x02FC, data, 8)) return false;
 
     hdp_status.status = data[5]; // reference impl uses [5]
     hdp_status.next_packet_len = data[2] | (data[3] << 8);
@@ -319,6 +386,8 @@ bool SPD2010Touch::readFirmwareVersion() {
 
 bool SPD2010Touch::readTouchData(TouchData& touch)
 {
+    if (_in_lpm) return false;
+    
     // Gate reads: if there’s no IRQ edge and the line is not low, don’t poll the chip
     if (!_interrupt_flag && (_interrupt_pin >= 0) && digitalRead(_interrupt_pin) != LOW) {
         return false;
@@ -336,43 +405,45 @@ bool SPD2010Touch::readTouchData(TouchData& touch)
     }
 
 #if 1
-    Serial.printf("INT state: pt=%d gest=%d aux=%d cpu_run=%d cpu=%d bios=%d busy=%d\n",
-        tp_status.status_low.pt_exist,
-        tp_status.status_low.gesture,
-        tp_status.status_low.aux,
-        tp_status.status_high.cpu_run,
-        tp_status.status_high.tic_in_cpu,
-        tp_status.status_high.tic_in_bios,
-        tp_status.status_high.tic_busy
-    );
+  Serial.printf("INT state: pt=%d gest=%d aux=%d cpu_run=%d cpu=%d bios=%d busy=%d tint=%d\n",
+  tp_status.status_low.pt_exist,
+  tp_status.status_low.gesture,
+  tp_status.status_low.aux,
+  tp_status.status_high.cpu_run,
+  tp_status.status_high.tic_in_cpu,
+  tp_status.status_high.tic_in_bios,
+  tp_status.status_high.tic_busy,
+  tp_status.status_high.tint_low);
+    
 #endif
 
     // BIOS / CPU housekeeping
     if (tp_status.status_high.tic_in_bios) {
-        writeClearIntCommand();
+        writeClearIntCommand(false);
         writeCpuStartCommand();
         return false;
     }
     if (tp_status.status_high.tic_in_cpu) {
         writePointModeCommand();
         writeStartCommand();
-        writeClearIntCommand();
+        writeClearIntCommand(false);
         return false;
     }
     if (tp_status.status_high.cpu_run && tp_status.read_len == 0) {
-        writeClearIntCommand();
+        writeClearIntCommand(false);
         return false;
     }
 
     // Touch / Gesture present
     if (tp_status.status_low.pt_exist || tp_status.status_low.gesture) {
         readHDP(tp_status, touch);
-        writeClearIntCommand();
+        writeClearIntCommand(false);
 
+        // Pull any remaining chunks
         while (true) {
             if (!readHDPStatus(hdp_status)) break;
             if (hdp_status.status == 0x82) {
-                writeClearIntCommand();
+                writeClearIntCommand(false);
                 break;
             } else if (hdp_status.status == 0x00) {
                 readHDPRemainData(hdp_status);
@@ -382,9 +453,9 @@ bool SPD2010Touch::readTouchData(TouchData& touch)
         return true;
     }
 
-    // AUX only
+    // AUX only (shouldn’t wake now that it’s masked, but safe-guard)
     if (tp_status.status_high.cpu_run && tp_status.status_low.aux) {
-        writeClearIntCommand();
+        writeClearIntCommand(false);
         Serial.println("Skipping AUX-only INT");
         return false;
     }
